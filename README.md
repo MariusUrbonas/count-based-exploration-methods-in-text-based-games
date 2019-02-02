@@ -38,11 +38,19 @@ conda create --name baselines python=3.7
 conda activate baselines
 ```
 
+```bash
+python3 -m pip install --upgrade https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-1.12.0-py3-none-any.whl
+```
+
 Install pyfiction:
 
 ```bash
-pip3 install pyfiction
+pip install pyfiction
 ```
+Play game by:
 
+```bash
+python baselines/baselines_for_pyfiction/pyfiction_example.py
+```
 
 
