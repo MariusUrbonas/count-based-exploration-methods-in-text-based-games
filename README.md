@@ -41,7 +41,7 @@ conda activate baselines
 Install pyfiction:
 
 ```bash
-pip install pyfiction
+pip3 install pyfiction
 ```
 
 
