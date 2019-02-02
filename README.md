@@ -25,3 +25,24 @@ pip install textworld
 ```
 
 (Wait for Microsoft to fix [this issue](https://github.com/Microsoft/TextWorld/issues/121))
+
+
+## Evaluating our models 
+
+To evaluate our models we ll use pyfiction used in Baselines for Reinforcement Learning in Text Games (https://ieeexplore.ieee.org/abstract/document/8576056). 
+
+Make yourself a new enviroment:
+
+```bash
+conda create --name baselines python=3.7
+conda activate baselines
+```
+
+Install pyfiction:
+
+```bash
+pip install pyfiction
+```
+
+
+
