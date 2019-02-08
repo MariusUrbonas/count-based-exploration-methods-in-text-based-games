@@ -24,8 +24,17 @@ Make sure the environment is activated by checking that the terminal input says 
 pip install https://github.com/Microsoft/TextWorld/archive/master.zip
 ```
 
-(Wait for Microsoft to fix [this issue](https://github.com/Microsoft/TextWorld/issues/121))
+To create a game:
 
+```bash
+tw-make custom --world-size 5 --nb-objects 10 --quest-length 5 --seed 1234 --output tw_games/custom_game.ulx
+```
+
+To play the game:
+
+```bash
+tw-play tw_games/custom_game.ulx
+```
 
 ## Evaluating our models 
 
