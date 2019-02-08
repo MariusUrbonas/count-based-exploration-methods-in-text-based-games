@@ -1,0 +1,2 @@
+description: This starting kit for the First TextWorld Competition. It contains 'custom_agent.py' that needs to be completed, 'vocab.txt' that contains frequent English words plus those used in the games, a test_submission.py and a score.py scripts provided to perform a sanity check before uploading a submission, a sample of 10 games picked from the training set, and two example of submissions: random agent and the LSTM-DQN.
+version: v1.5
