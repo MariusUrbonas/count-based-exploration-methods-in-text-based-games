@@ -21,7 +21,7 @@ conda activate textworld
 Make sure the environment is activated by checking that the terminal input says `(textworld)` before continuing. Install Python packages using pip:
 
 ```bash
-pip install textworld
+pip install https://github.com/Microsoft/TextWorld/archive/master.zip
 ```
 
 (Wait for Microsoft to fix [this issue](https://github.com/Microsoft/TextWorld/issues/121))
