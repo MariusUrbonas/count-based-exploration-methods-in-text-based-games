@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Optional
 
 from numpy.random import RandomState
+import random
 
 from textworld import EnvInfos
 
@@ -102,4 +103,4 @@ class CustomAgent:
             The states for finished games are simply copy over until all
             games are done.
         """
-        return [self.rng.choice(cmds) for cmds in infos["admissible_commands"]]
+        return random.choice(infos["admissible_commands"])
