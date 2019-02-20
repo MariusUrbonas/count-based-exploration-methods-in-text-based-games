@@ -62,11 +62,13 @@ python -m spacy download en
 
 Make sure to edit `config.yaml`; use the following naming convention for experiments: `yyyy_mm_dd_name_experiment`, e.g. `2019_02_20_leon_initial_experiments`.
 
+To train on all games:
+
 ```bash
-python train.py "../../train/tw-cooking-recipe1-6yMNiKXmIgPjhepy.ulx"
+python train.py ../../train
 ```
 
-(Training on multiple games errors; waiting on forum response.)
+This should train on multiple games (needs to be tested). (Make a different folder with a subset of games to test?)
 
 ## PyFiction
 
