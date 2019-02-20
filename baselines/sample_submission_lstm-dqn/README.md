@@ -12,7 +12,7 @@ This is a sample submission with training components for the competition.
 * GPU vs CPU: Enable or disable cuda by using `use_cuda` in `config.yaml`.
 * We recommend to train the agent on a machine with a GPU.
 * Save and load pretrained model: See `checkpoint` in `config.yaml`.
-* To train a model on all data, run `python train.py $TRAINING_DATA/*.ulx`, or to train on part of the data, e.g., on games where recipe only contains 1 ingredient, run `python train.py $TRAINING_DATA/*recipe1*.ulx`
+* To train a model on all data, run `python train.py $TRAINING_DATA/`, or to train on part of the data, e.g., on games where recipe only contains 1 ingredient, run `python train.py $TRAINING_DATA/*recipe1*.ulx`
 * Only the `*.ulx` files are supported for training the LSTM-DQN.
 
 NB: `$TRAINING_DATA` points to the extracted contents of `train.zip` downloaded from the competition website.

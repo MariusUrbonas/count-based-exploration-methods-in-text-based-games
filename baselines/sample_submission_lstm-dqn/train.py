@@ -1,3 +1,5 @@
+import os
+import glob
 import argparse
 
 from tqdm import tqdm
@@ -73,6 +75,15 @@ def train(game_files):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Train an agent.")
     parser.add_argument("games", metavar="game", nargs="+",
-                       help="List of games to use for training.")
+                       help="List of games (or folders containing games) to use for training.")
     args = parser.parse_args()
-    train(args.games)
+
+    games = []
+    for game in args.games:
+        if os.path.isdir(game):
+            games += glob.glob(os.path.join(game, "*.ulx"))
+        else:
+            games.append(game)
+
+    print("{} games found for training.".format(len(games)))
+    train(games)
