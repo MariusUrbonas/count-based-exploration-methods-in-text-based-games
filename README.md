@@ -52,6 +52,20 @@ With the `textworld` conda environment activated, and making sure that `which pi
 pip install spacy torch
 ```
 
+Download the English language model:
+
+```bash
+python -m spacy download en
+```
+
+Training on a single game:
+
+```bash
+python train.py "../../train/tw-cooking-recipe1-6yMNiKXmIgPjhepy.ulx"
+```
+
+(Training on multiple games errors; waiting on forum response.)
+
 ## Evaluating our models 
 
 To evaluate our models we ll use pyfiction used in Baselines for Reinforcement Learning in Text Games (https://ieeexplore.ieee.org/abstract/document/8576056). 
