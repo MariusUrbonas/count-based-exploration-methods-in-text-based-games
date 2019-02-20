@@ -38,6 +38,12 @@ To play the game:
 tw-play tw_games/custom_game.ulx
 ```
 
+## Training data
+
+Get the data from the [CodaLab Competition](https://competitions.codalab.org/competitions/20865#participate-get_starting_kit) at: Participate tab > Files > Public Data.
+
+Unzip it into the repo's root directory (where this file is) and name the folder `train` so that it gets ignored by git.
+
 ## LSTM-DQN
 
 With the `textworld` conda environment activated, and making sure that `which pip` points to the pip inside conda:
