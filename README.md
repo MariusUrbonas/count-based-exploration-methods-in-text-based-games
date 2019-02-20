@@ -3,6 +3,8 @@ Framework and model code for the paper "[Name TBD]", which was also used as a su
 
 # Installation
 
+## TextWorld
+
 Follow these steps to set up TextWorld. Adapted from the [TextWorld repo](https://github.com/microsoft/textworld).
 
 Get required system libraries. For macOS:
@@ -34,6 +36,14 @@ To play the game:
 
 ```bash
 tw-play tw_games/custom_game.ulx
+```
+
+## LSTM-DQN
+
+With the `textworld` conda environment activated, and making sure that `which pip` points to the pip inside conda:
+
+```bash
+pip install spacy torch
 ```
 
 ## Evaluating our models 
