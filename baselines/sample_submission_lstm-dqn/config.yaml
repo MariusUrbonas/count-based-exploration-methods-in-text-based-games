@@ -1,7 +1,7 @@
 general:
   discount_gamma: 0.5
   random_seed: 42
-  use_cuda: True  # disable this when running on machine without cuda
+  use_cuda: False  # disable this when running on machine without cuda
 
   # replay memory
   replay_memory_capacity: 500000  # adjust this depending on your RAM size
