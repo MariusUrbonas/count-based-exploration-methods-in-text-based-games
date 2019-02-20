@@ -3,6 +3,8 @@ Framework and model code for the paper "[Name TBD]", which was also used as a su
 
 # Installation
 
+## TextWorld
+
 Follow these steps to set up TextWorld. Adapted from the [TextWorld repo](https://github.com/microsoft/textworld).
 
 Get required system libraries. For macOS:
@@ -36,7 +38,37 @@ To play the game:
 tw-play tw_games/custom_game.ulx
 ```
 
-## Evaluating our models 
+## Training data
+
+Get the data from the [CodaLab Competition](https://competitions.codalab.org/competitions/20865#participate-get_starting_kit) at: Participate tab > Files > Public Data.
+
+Unzip it into the repo's root directory (where this file is) and name the folder `train` so that it gets ignored by git.
+
+## LSTM-DQN
+
+With the `textworld` conda environment activated, and making sure that `which pip` points to the pip inside conda:
+
+```bash
+pip install spacy torch
+```
+
+Download the English language model:
+
+```bash
+python -m spacy download en
+```
+
+### Training
+
+Make sure to edit `config.yaml`; use the following naming convention for experiments: `yyyy_mm_dd_name_experiment`, e.g. `2019_02_20_leon_initial_experiments`.
+
+```bash
+python train.py "../../train/tw-cooking-recipe1-6yMNiKXmIgPjhepy.ulx"
+```
+
+(Training on multiple games errors; waiting on forum response.)
+
+## PyFiction
 
 To evaluate our models we ll use pyfiction used in Baselines for Reinforcement Learning in Text Games (https://ieeexplore.ieee.org/abstract/document/8576056). 
 
@@ -61,5 +93,3 @@ Play game by:
 ```bash
 python baselines/baselines_for_pyfiction/pyfiction_example.py
 ```
-
-
