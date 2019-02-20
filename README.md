@@ -58,7 +58,9 @@ Download the English language model:
 python -m spacy download en
 ```
 
-Training on a single game:
+### Training
+
+Make sure to edit `config.yaml`; use the following naming convention for experiments: `yyyy_mm_dd_name_experiment`, e.g. `2019_02_20_leon_initial_experiments`.
 
 ```bash
 python train.py "../../train/tw-cooking-recipe1-6yMNiKXmIgPjhepy.ulx"
@@ -66,7 +68,7 @@ python train.py "../../train/tw-cooking-recipe1-6yMNiKXmIgPjhepy.ulx"
 
 (Training on multiple games errors; waiting on forum response.)
 
-## Evaluating our models 
+## PyFiction
 
 To evaluate our models we ll use pyfiction used in Baselines for Reinforcement Learning in Text Games (https://ieeexplore.ieee.org/abstract/document/8576056). 
 
@@ -91,5 +93,3 @@ Play game by:
 ```bash
 python baselines/baselines_for_pyfiction/pyfiction_example.py
 ```
-
-
