@@ -9,8 +9,7 @@ try:
 except:
     print('Usage: python generate_train_scripts.py path/to/games_folder path/to/scripts_folder')
 
-base_script = """
-#!/bin/sh
+base_script = """#!/bin/sh
 #SBATCH -N 1	  # nodes requested
 #SBATCH -n 1	  # tasks requested
 SBATCH --partition=standard
