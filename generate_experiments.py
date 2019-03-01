@@ -77,7 +77,3 @@ for quest_length in quest_lengths:
                 }))
 
         print('Generated training scripts')
-
-        os.mkdir('experiments/{}/models/{}'.format(experiment_name, game_name))
-
-        print('Created folder to save models')
