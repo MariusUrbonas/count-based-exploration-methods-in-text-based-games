@@ -31,9 +31,9 @@ def _validate_requested_infos(infos: EnvInfos):
             raise ValueError(msg.format(key))
 
 
-def train(game_files):
+def train(game_files, config_file_name):
 
-    agent = CustomAgent()
+    agent = CustomAgent(config_file_name)
     requested_infos = agent.select_additional_infos()
     _validate_requested_infos(requested_infos)
 
@@ -76,6 +76,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Train an agent.")
     parser.add_argument("games", metavar="game", nargs="+",
                        help="List of games (or folders containing games) to use for training.")
+    parser.add_argument("-c", "--config", metavar="config", nargs="?", default="config.yaml", 
+                       help="Single config.yaml file path should be provided")
     args = parser.parse_args()
 
     games = []
@@ -86,4 +88,4 @@ if __name__ == '__main__':
             games.append(game)
 
     print("{} games found for training.".format(len(games)))
-    train(games)
+    train(games, args.config)

@@ -67,6 +67,9 @@ To train on all games:
 ```bash
 python train.py ../../train
 ```
+```bash
+train.py ../../train/some-game.ulx -c  config.yaml
+```
 
 This should train on multiple games (needs to be tested). (Make a different folder with a subset of games to test?)
 

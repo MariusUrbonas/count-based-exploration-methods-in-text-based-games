@@ -88,7 +88,7 @@ class PrioritizedReplayMemory(object):
 
 
 class CustomAgent:
-    def __init__(self):
+    def __init__(self, config_file_name):
         """
         Arguments:
             word_vocab: List of words supported.
@@ -96,7 +96,7 @@ class CustomAgent:
         self.mode = "train"
         with open("./vocab.txt") as f:
             self.word_vocab = f.read().split("\n")
-        with open("config.yaml") as reader:
+        with open(config_file_name) as reader:
             self.config = yaml.safe_load(reader)
         self.word2id = {}
         for i, w in enumerate(self.word_vocab):
