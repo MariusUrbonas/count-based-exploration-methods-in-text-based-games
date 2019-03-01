@@ -3,8 +3,9 @@ import subprocess
 import sys
 import os
 
-# Games will be generated in `tw_games/experiment_name`
-# Config files will be generated in `config_files/experiment_name`
+# Games will be generated in `experiments/experiment_name/games`
+# Config files will be generated in `experiments/experiment_name/configs`
+# Train scripts will be generated in `experiments/experiment_name/scripts`
 try:
     experiment_name = sys.argv[1]
 except IndexError:
@@ -12,16 +13,19 @@ except IndexError:
     exit()
 
 try:
-    os.mkdir('config_files/{}'.format(experiment_name))
+    os.mkdir('experiments/' + experiment_name)
+    os.mkdir('experiments/{}/games'.format(experiment_name))
+    os.mkdir('experiments/{}/config'.format(experiment_name))
+    os.mkdir('experiments/{}/scripts'.format(experiment_name))
+    os.mkdir('experiments/{}/models'.format(experiment_name))
 except Exception:
-    print('Directory `config_files/{}` already exists'.format(experiment_name))
+    print('Directory `experiments/{}` already exists.'.format(experiment_name))
+    exit()
 
-# These stay constant
+# Parameters for the generated games
 world_size = 3
 num_objects = 7
-
-# These change
-quest_lengths = [1, 2, 3, 4, 5]
+quest_lengths = [1]#, 2, 3, 4, 5]
 seeds = [1234]  # Add more seeds to generate more versions of each game type
 
 for quest_length in quest_lengths:
@@ -34,24 +38,42 @@ for quest_length in quest_lengths:
             num_objects,
             seed
         )
-        if False:
-            # Generate textworld game with specified params
-            subprocess.run([
-                'tw-make', 'custom',
-                '--world-size', str(world_size),
-                '--nb-objects', str(num_objects), 
-                '--quest-length', str(quest_length),
-                '--seed', str(seed),
-                '--output', 'tw_games/{}/{}.ulx'.format(experiment_name, game_name)
-            ])
+
+        print('\nGenerating experiments for {}...\n'.format(game_name))
+
+        # Generate textworld game with specified params
+        subprocess.run([
+            'tw-make', 'custom',
+            '--world-size', str(world_size),
+            '--nb-objects', str(num_objects), 
+            '--quest-length', str(quest_length),
+            '--seed', str(seed),
+            '--output', 'experiments/{}/games/{}.ulx'.format(experiment_name, game_name)
+        ])
+
+        print('Generated game')
 
         # Generate YAML config file
+        config_file_name = 'experiments/{}/config/{}.yaml'.format(experiment_name, game_name)
         with open('base_config.yaml') as base_config:
             template = Template(base_config.read())
-            config_file_name = 'config_files/{}/{}.yaml'.format(experiment_name, game_name)
-
             with open(config_file_name, 'w') as config_file:
                 config_file.write(template.substitute({
                     'experiment_name': experiment_name,
                     'game_name': game_name
                 }))
+        
+        print('Generated config file')
+
+        # Generate training scripts
+        script_file_name = 'experiments/{}/scripts/{}.sh'.format(experiment_name, game_name)
+        with open('base_script.sh') as base_script:
+            template = Template(base_script.read())
+            with open(script_file_name, 'w') as script_file:
+                script_file.write(template.substitute({
+                    'experiment_name': experiment_name,
+                    'game_name': game_name,
+                    'config_file_name': config_file_name
+                }))
+
+        print('Generated training scripts')

@@ -89,3 +89,5 @@ train/
 **/saved_models/
 generated_scripts/
 config_files/
+experiments/
+.vscode/
