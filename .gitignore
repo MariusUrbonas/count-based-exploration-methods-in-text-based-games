@@ -88,3 +88,4 @@ tw_games/
 train/
 **/saved_models/
 generated_scripts/
+config_files/
