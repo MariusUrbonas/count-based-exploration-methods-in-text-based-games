@@ -1,6 +1,7 @@
 import os
 import glob
 import argparse
+import pickle
 
 from tqdm import tqdm
 
@@ -42,7 +43,7 @@ def train(game_files, config_file_name):
                                           name="training")
     env_id = textworld.gym.make_batch(env_id, batch_size=agent.batch_size, parallel=True)
     env = gym.make(env_id)
-
+    full_stats = {}
     for epoch_no in range(1, agent.nb_epochs + 1):
         stats = {
             "scores": [],
@@ -59,6 +60,7 @@ def train(game_files, config_file_name):
                 # Increase step counts.
                 steps = [step + int(not done) for step, done in zip(steps, dones)]
                 commands = agent.act(obs, scores, dones, infos)
+                print("scores: " + str(scores) )
                 obs, scores, dones, infos = env.step(commands)
 
             # Let the agent knows the game is done.
@@ -66,11 +68,13 @@ def train(game_files, config_file_name):
 
             stats["scores"].extend(scores)
             stats["steps"].extend(steps)
+        full_stats[epoch_no] = stats
 
         score = sum(stats["scores"]) / agent.batch_size
         steps = sum(stats["steps"]) / agent.batch_size
         print("Epoch: {:3d} | {:2.1f} pts | {:4.1f} steps".format(epoch_no, score, steps))
-
+    pickle_out = open(config_file_name[:-3] + "pickle","wb")
+    pickle.dump(full_stats)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Train an agent.")
