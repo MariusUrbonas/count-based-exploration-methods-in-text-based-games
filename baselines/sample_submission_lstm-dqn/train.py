@@ -60,7 +60,6 @@ def train(game_files, config_file_name):
                 # Increase step counts.
                 steps = [step + int(not done) for step, done in zip(steps, dones)]
                 commands = agent.act(obs, scores, dones, infos)
-                print("scores: " + str(scores) )
                 obs, scores, dones, infos = env.step(commands)
 
             # Let the agent knows the game is done.
