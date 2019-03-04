@@ -3,7 +3,6 @@
 
 # data
 data
-*.json
 data/duc
 *.pkl
 logs
