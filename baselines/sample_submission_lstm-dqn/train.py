@@ -73,8 +73,13 @@ def train(game_files, config_file_name):
         score = sum(stats["scores"]) / agent.batch_size
         steps = sum(stats["steps"]) / agent.batch_size
         print("Epoch: {:3d} | {:2.1f} pts | {:4.1f} steps".format(epoch_no, score, steps))
-    pickle_out = open(config_file_name[:-3] + "pickle","wb")
-    pickle.dump(full_stats)
+    stats_file_name = config_file_name.split("/")
+    stats_file_name[-2] = "stats"
+    stats_file_name[-1] = stats_file_name[-1].strip("yaml") + "pickle"
+    stats_file_name = "/".join(stats_file_name)
+    with open(stats_file_name,"wb") as f:
+        pickle.dump(full_stats, f)
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Train an agent.")

@@ -18,6 +18,7 @@ try:
     os.mkdir('experiments/{}/config'.format(experiment_name))
     os.mkdir('experiments/{}/scripts'.format(experiment_name))
     os.mkdir('experiments/{}/models'.format(experiment_name))
+    os.mkdir('experiments/{}/stats'.format(experiment_name))
 except Exception:
     print('Directory `experiments/{}` already exists.'.format(experiment_name))
     exit()
