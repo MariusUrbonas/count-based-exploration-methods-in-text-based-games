@@ -2,6 +2,7 @@ import os
 import glob
 import argparse
 import pickle
+import yaml
 
 from tqdm import tqdm
 
@@ -43,6 +44,11 @@ def train(game_files, config_file_name):
                                           name="training")
     env_id = textworld.gym.make_batch(env_id, batch_size=agent.batch_size, parallel=True)
     env = gym.make(env_id)
+    config = {}
+    with open(config_file_name) as reader:
+        config = yaml.safe_load(reader)
+    history_length = int(config['training']['nb_history'])
+    print(history_length)
     full_stats = {}
     for epoch_no in range(1, agent.nb_epochs + 1):
         stats = {
@@ -52,16 +58,22 @@ def train(game_files, config_file_name):
         for game_no in tqdm(range(len(game_files))):
             obs, infos = env.reset()
             agent.train()
-
             scores = [0] * len(obs)
             dones = [False] * len(obs)
             steps = [0] * len(obs)
+            # makes a copy of initial instructions and puts them in an array with pre appended empty items
+            empty_list = [""] * history_length
+            history = list(map(lambda x : empty_list + [x], obs))
+            history_step = 0 + history_length
             while not all(dones):
                 # Increase step counts.
                 steps = [step + int(not done) for step, done in zip(steps, dones)]
-                commands = agent.act(obs, scores, dones, infos)
+                history_step += 1
+                history_obs =  list(map(lambda x: "".join(x[history_step-history_length:history_step]), history))
+                commands = agent.act(history_obs, scores, dones, infos)
                 obs, scores, dones, infos = env.step(commands)
-
+                # append next step
+                history = [x + [obs[i]] for i, x in enumerate(history)]
             # Let the agent knows the game is done.
             agent.act(obs, scores, dones, infos)
 
