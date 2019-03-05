@@ -48,7 +48,6 @@ def train(game_files, config_file_name):
     with open(config_file_name) as reader:
         config = yaml.safe_load(reader)
     history_length = int(config['training']['nb_history'])
-    print(history_length)
     full_stats = {}
     for epoch_no in range(1, agent.nb_epochs + 1):
         stats = {
