@@ -8,6 +8,7 @@ import os
 # Train scripts will be generated in `experiments/experiment_name/scripts`
 try:
     experiment_name = sys.argv[1]
+    nb_history = sys.argv[2]
 except IndexError:
     print('Usage: `python generate_experiments your_experiment_name`')
     exit()
@@ -61,7 +62,8 @@ for quest_length in quest_lengths:
             with open(config_file_name, 'w') as config_file:
                 config_file.write(template.substitute({
                     'experiment_name': experiment_name,
-                    'game_name': game_name
+                    'game_name': game_name,
+                    'nb_history' : nb_history
                 }))
         
         print('Generated config file')
