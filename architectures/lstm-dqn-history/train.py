@@ -63,12 +63,12 @@ def train(game_files, config_file_name):
             # makes a copy of initial instructions and puts them in an array with pre appended empty items
             empty_list = [""] * history_length
             history = list(map(lambda x : empty_list + [x], obs))
-            history_step = 0 + history_length
+            history_step = history_length
             while not all(dones):
                 # Increase step counts.
                 steps = [step + int(not done) for step, done in zip(steps, dones)]
                 history_step += 1
-                history_obs =  list(map(lambda x: "".join(x[history_step-history_length:history_step]), history))
+                history_obs = list(map(lambda x: "".join(x[history_step-history_length:history_step]), history))
                 commands = agent.act(history_obs, scores, dones, infos)
                 obs, scores, dones, infos = env.step(commands)
                 # append next step
