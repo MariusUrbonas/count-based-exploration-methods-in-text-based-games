@@ -2,6 +2,7 @@ import logging
 import numpy as np
 from collections import namedtuple
 import random
+import copy
 # from matplotlib import pyplot as plt
 
 import torch
