@@ -48,7 +48,7 @@ def train(game_files, config):
     env_id = textworld.gym.register_games(game_files, requested_infos,
         max_episode_steps=max_nb_steps_per_episode, name="training")
     env_id = textworld.gym.make_batch(env_id, batch_size=batch_size, parallel=True)
-    
+
     env = gym.make(env_id)
     env.seed(config['general']['random_seed'])
 
@@ -133,7 +133,7 @@ def train(game_files, config):
         rewards = None
         avg_loss_in_this_game = []
 
-        curr_observation_strings = agent.get_observation_strings(infos)
+        curr_observation_strings = agent.get_observation_strings([infos])
         if revisit_counting:
             agent.reset_binarized_counter(batch_size)
             revisit_counting_rewards = agent.get_binarized_count(curr_observation_strings)

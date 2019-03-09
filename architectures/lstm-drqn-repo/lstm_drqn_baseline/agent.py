@@ -4,6 +4,7 @@ from collections import namedtuple
 import random
 import copy
 # from matplotlib import pyplot as plt
+from pprint import pprint
 
 import torch
 import torch.nn.functional as F
@@ -345,12 +346,11 @@ class RLAgent(object):
         return input_description, description_with_history_id_list
 
     def get_observation_strings(self, infos):
-        # concat game_id_d/i/q together as one string
-        game_file_names = [info["game_file"] for info in infos]
+        # concat i/q together as one string
         inventory_strings = [info["inventory"] for info in infos]
         description_strings = [info["description"] for info in infos]
 
-        observation_strings = [_n + _d + _i for (_n, _d, _i) in zip(game_file_names, description_strings, inventory_strings)]
+        observation_strings = [_d + _i for (_d, _i) in zip(description_strings, inventory_strings)]
 
         return observation_strings
 
