@@ -24,7 +24,7 @@ import gym_textworld  # Register all textworld environments.
 import textworld
 
 
-def train(config):
+def train(games, config):
     # train env
     print('Setting up TextWorld environment...')
     batch_size = config['training']['scheduling']['batch_size']
@@ -278,6 +278,8 @@ if __name__ == '__main__':
         if not os.path.exists(_p):
             os.mkdir(_p)
     parser = argparse.ArgumentParser(description="train network.")
+    parser.add_argument("games", metavar="game", nargs="+",
+        help="List of games (or folders containing games) to use for training.")
     parser.add_argument("-c", "--config_dir", default='config', help="the default config directory")
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
     parser.add_argument("-vv", "--very-verbose", help="print out warnings", action="store_true")
@@ -298,4 +300,11 @@ if __name__ == '__main__':
                   default_logs_path=default_logs_path)
     log_git_commit(logger)
 
-    train(config=config)
+    games = []
+    for game in args.games:
+        if os.path.isdir(game):
+            games += glob.glob(os.path.join(game, "*.ulx"))
+        else:
+            games.append(game)
+
+    train(games, config=config)
