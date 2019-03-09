@@ -1,6 +1,6 @@
 general:
   experiment_tag: 'lstm_drqn_'
-  env_id: 'twcc_easy_level10_gamesize100_step50_seed9_train'
+  env_id: 'test_game'
   run_test: False
   valid_env_id: 'twcc_easy_level10_gamesize10_step50_seed9_validation'
   test_env_id: ['twcc_easy_level5_gamesize10_step50_seed1_test',
@@ -11,7 +11,7 @@ general:
   discount_gamma: 0.5
   random_seed: 42
   observation_cache_capacity: 1  # concat window of history observation, 1 means no history observations available
-  experiments_dir: 'experiments/lstm_drqn'
+  experiments_dir: '../../../experiments/lstm_drqn'
   use_cuda: False  # disable this when running on machine without cuda
   provide_prev_action: True
 
