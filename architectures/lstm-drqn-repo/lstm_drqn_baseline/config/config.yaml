@@ -38,7 +38,7 @@ training:
   max_nb_steps_per_episode: 50
 
   scheduling:
-    batch_size: 10
+    batch_size: 1
     test_batch_size: 10
     epoch: 20000
     model_checkpoint_path: 'saved_models/model1.pt'
