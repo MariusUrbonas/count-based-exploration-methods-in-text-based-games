@@ -22,15 +22,33 @@ import gym
 import gym_textworld  # Register all textworld environments.
 
 import textworld
+import textworld.gym
 
 
-def train(games, config):
+def train(game_files, config):
+
+    # TODO: Move all this config inside agent
+    revisit_counting = config['general']['revisit_counting']
+    replay_batch_size = config['general']['replay_batch_size']
+    history_size = config['general']['history_size']
+    update_from = config['general']['update_from']
+    replay_memory_capacity = config['general']['replay_memory_capacity']
+    replay_memory_priority_fraction = config['general']['replay_memory_priority_fraction']
+
+    agent = RLAgent(config, [], [], [],
+                    replay_memory_capacity=replay_memory_capacity, replay_memory_priority_fraction=replay_memory_priority_fraction)
+
+    requested_infos = agent.select_additional_infos()
+
     # train env
     print('Setting up TextWorld environment...')
+
     batch_size = config['training']['scheduling']['batch_size']
-    env_id = gym_textworld.make_batch(env_id=config['general']['env_id'],
-                                      batch_size=batch_size,
-                                      parallel=True)
+    max_nb_steps_per_episode = config['training']['max_nb_steps_per_episode']
+
+    env_id = textworld.gym.register_games(game_files, requested_infos,
+        max_episode_steps=max_nb_steps_per_episode, name="training")
+    env_id = gym_textworld.make_batch(env_id=env_id, batch_size=batch_size, parallel=True)
     env = gym.make(env_id)
     env.seed(config['general']['random_seed'])
 
@@ -66,26 +84,6 @@ def train(games, config):
             torch.cuda.manual_seed(config['general']['random_seed'])
     else:
         config['general']['use_cuda'] = False  # Disable CUDA.
-    revisit_counting = config['general']['revisit_counting']
-    replay_batch_size = config['general']['replay_batch_size']
-    history_size = config['general']['history_size']
-    update_from = config['general']['update_from']
-    replay_memory_capacity = config['general']['replay_memory_capacity']
-    replay_memory_priority_fraction = config['general']['replay_memory_priority_fraction']
-
-    word_vocab = dict2list(env.observation_space.id2w)
-    word2id = {}
-    for i, w in enumerate(word_vocab):
-        word2id[w] = i
-
-    # collect all nouns
-    # verb_list, object_name_list = get_verb_and_object_name_lists(env)
-    verb_list = ["go", "take"]
-    object_name_list = ["east", "west", "north", "south", "coin"]
-    verb_map = [word2id[w] for w in verb_list if w in word2id]
-    noun_map = [word2id[w] for w in object_name_list if w in word2id]
-    agent = RLAgent(config, word_vocab, verb_map, noun_map,
-                    replay_memory_capacity=replay_memory_capacity, replay_memory_priority_fraction=replay_memory_priority_fraction)
 
     init_learning_rate = config['training']['optimizer']['learning_rate']
     exp_dir = get_experiment_dir(config)

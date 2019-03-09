@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 import gym
 import gym_textworld  # Register all textworld environments.
 
+from textworld import EnvInfos
+
 
 Transition = namedtuple('Transition', ('observation_id_list', 'v_idx', 'n_idx',
                                        'reward', 'mask', 'done', 'is_final', 'observation_str'))
@@ -435,3 +437,53 @@ class RLAgent(object):
     def load_state_dict(self, state):
         self.model.load_state_dict(state['model'])
         self.optimizer.load_state_dict(state['optimizer'])
+
+    def select_additional_infos(self) -> EnvInfos:
+        """
+        Returns what additional information should be made available at each game step.
+
+        Requested information will be included within the `infos` dictionary
+        passed to `CustomAgent.act()`. To request specific information, create a
+        :py:class:`textworld.EnvInfos <textworld.envs.wrappers.filter.EnvInfos>`
+        and set the appropriate attributes to `True`. The possible choices are:
+
+        * `description`: text description of the current room, i.e. output of the `look` command;
+        * `inventory`: text listing of the player's inventory, i.e. output of the `inventory` command;
+        * `max_score`: maximum reachable score of the game;
+        * `objective`: objective of the game described in text;
+        * `entities`: names of all entities in the game;
+        * `verbs`: verbs understood by the the game;
+        * `command_templates`: templates for commands understood by the the game;
+        * `admissible_commands`: all commands relevant to the current state;
+
+        In addition to the standard information, game specific information
+        can be requested by appending corresponding strings to the `extras`
+        attribute. For this competition, the possible extras are:
+
+        * `'recipe'`: description of the cookbook;
+        * `'walkthrough'`: one possible solution to the game (not guaranteed to be optimal);
+
+        Example:
+            Here is an example of how to request information and retrieve it.
+
+            >>> from textworld import EnvInfos
+            >>> request_infos = EnvInfos(description=True, inventory=True, extras=["recipe"])
+            ...
+            >>> env = gym.make(env_id)
+            >>> ob, infos = env.reset()
+            >>> print(infos["description"])
+            >>> print(infos["inventory"])
+            >>> print(infos["extra.recipe"])
+
+        Notes:
+            The following information *won't* be available at test time:
+
+            * 'walkthrough'
+        """
+        request_infos = EnvInfos()
+        request_infos.description = True
+        request_infos.inventory = True
+        request_infos.entities = True
+        request_infos.verbs = True
+        request_infos.extras = ["recipe"]
+        return request_infos
