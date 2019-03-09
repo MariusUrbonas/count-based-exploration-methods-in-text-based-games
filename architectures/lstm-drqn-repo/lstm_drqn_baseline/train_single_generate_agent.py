@@ -47,7 +47,8 @@ def train(game_files, config):
 
     env_id = textworld.gym.register_games(game_files, requested_infos,
         max_episode_steps=max_nb_steps_per_episode, name="training")
-    env_id = gym_textworld.make_batch(env_id=env_id, batch_size=batch_size, parallel=True)
+    env_id = textworld.gym.make_batch(env_id, batch_size=batch_size, parallel=True)
+    
     env = gym.make(env_id)
     env.seed(config['general']['random_seed'])
 
