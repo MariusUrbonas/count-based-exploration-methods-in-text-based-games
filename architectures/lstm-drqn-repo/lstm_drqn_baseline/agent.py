@@ -283,8 +283,8 @@ class RLAgent(object):
 
     def get_ranks(self, input_description, prev_hidden=None, prev_cell=None):
         state_representation = self.model.representation_generator(input_description)
-        verb_rank, noun_rank, curr_hidden, curr_cell = self.model.recurrent_action_scorer(state_representation, prev_hidden, prev_cell)
-        return verb_rank, noun_rank, curr_hidden, curr_cell
+        word_ranks, curr_hidden, curr_cell = self.model.recurrent_action_scorer(state_representation, prev_hidden, prev_cell)
+        return word_ranks, curr_hidden, curr_cell
 
     def generate_one_command(self, input_description, prev_hidden=None, prev_cell=None, epsilon=0.2):
         verb_rank, noun_rank, curr_hidden, curr_cell = self.get_ranks(input_description, prev_hidden, prev_cell)  # batch x n_verb, batch x n_noun
