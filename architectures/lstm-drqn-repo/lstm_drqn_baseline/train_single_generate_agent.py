@@ -133,7 +133,7 @@ def train(game_files, config):
         rewards = None
         avg_loss_in_this_game = []
 
-        curr_observation_strings = agent.get_observation_strings([infos])
+        curr_observation_strings = agent.get_observation_strings(infos)
         if revisit_counting:
             agent.reset_binarized_counter(batch_size)
             revisit_counting_rewards = agent.get_binarized_count(curr_observation_strings)

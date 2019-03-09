@@ -347,12 +347,8 @@ class RLAgent(object):
 
     def get_observation_strings(self, infos):
         # concat i/q together as one string
-        inventory_strings = [info["inventory"] for info in infos]
-        description_strings = [info["description"] for info in infos]
 
-        observation_strings = [_d + _i for (_d, _i) in zip(description_strings, inventory_strings)]
-
-        return observation_strings
+        return [_d + _i for (_d, _i) in zip(infos["description"], infos["inventory"])]
 
     def compute_reward(self, revisit_counting_lambda=0.0, revisit_counting=True):
         if len(self.dones) == 1:
