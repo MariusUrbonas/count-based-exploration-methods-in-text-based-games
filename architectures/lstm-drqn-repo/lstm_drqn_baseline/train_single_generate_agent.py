@@ -35,9 +35,8 @@ def train(game_files, config):
     replay_memory_capacity = config['general']['replay_memory_capacity']
     replay_memory_priority_fraction = config['general']['replay_memory_priority_fraction']
 
-    agent = RLAgent(config, [], [], [],
-                    replay_memory_capacity=replay_memory_capacity, replay_memory_priority_fraction=replay_memory_priority_fraction)
-
+    agent = RLAgent(config, replay_memory_capacity=replay_memory_capacity,
+        replay_memory_priority_fraction=replay_memory_priority_fraction)
     requested_infos = agent.select_additional_infos()
 
     # train env

@@ -160,21 +160,20 @@ class ObservationHistoryCache(object):
 
 
 class RLAgent(object):
-    def __init__(self, config, word_vocab, verb_map, noun_map, replay_memory_capacity=100000, replay_memory_priority_fraction=0.0, load_pretrained=False):
+    def __init__(self, config, replay_memory_capacity=100000, replay_memory_priority_fraction=0.0, load_pretrained=False):
         # print('Creating RL agent...')
         self.use_dropout_exploration = True  # TODO: move to config.
         self.config = config
         self.use_cuda = config['general']['use_cuda']
-        self.word_vocab = word_vocab
-        self.verb_map = verb_map
-        self.noun_map = noun_map
+
+        with open("./vocab.txt") as f:
+            self.word_vocab = f.read().split("\n")
         self.word2id = {}
-        for i, w in enumerate(word_vocab):
+        for i, w in enumerate(self.word_vocab):
             self.word2id[w] = i
+        self.EOS_id = self.word2id["</S>"]
         self.model = LSTM_DQN(model_config=config["model"],
                               word_vocab=self.word_vocab,
-                              verb_map=verb_map,
-                              noun_map=noun_map,
                               enable_cuda=self.use_cuda)
         self.action_scorer_hidden_dim = config['model']['lstm_dqn']['action_scorer_hidden_dim']
         if load_pretrained:
@@ -203,6 +202,44 @@ class RLAgent(object):
         self.intermediate_rewards = []
         self.revisit_counting_rewards = []
         self.observation_cache.reset()
+
+        # get word masks
+        batch_size = len(infos["verbs"])
+        verbs_word_list = infos["verbs"]
+        noun_word_list, adj_word_list = [], []
+        for entities in infos["entities"]:
+            tmp_nouns, tmp_adjs = [], []
+            for name in entities:
+                split = name.split()
+                tmp_nouns.append(split[-1])
+                if len(split) > 1:
+                    tmp_adjs += split[:-1]
+            noun_word_list.append(list(set(tmp_nouns)))
+            adj_word_list.append(list(set(tmp_adjs)))
+
+        verb_mask = np.zeros((batch_size, len(self.word_vocab)), dtype="float32")
+        noun_mask = np.zeros((batch_size, len(self.word_vocab)), dtype="float32")
+        adj_mask = np.zeros((batch_size, len(self.word_vocab)), dtype="float32")
+        for i in range(batch_size):
+            for w in verbs_word_list[i]:
+                if w in self.word2id:
+                    verb_mask[i][self.word2id[w]] = 1.0
+            for w in noun_word_list[i]:
+                if w in self.word2id:
+                    noun_mask[i][self.word2id[w]] = 1.0
+            for w in adj_word_list[i]:
+                if w in self.word2id:
+                    adj_mask[i][self.word2id[w]] = 1.0
+        second_noun_mask = copy.copy(noun_mask)
+        second_adj_mask = copy.copy(adj_mask)
+        second_noun_mask[:, self.EOS_id] = 1.0
+        adj_mask[:, self.EOS_id] = 1.0
+        second_adj_mask[:, self.EOS_id] = 1.0
+        self.word_masks_np = [verb_mask, adj_mask, noun_mask, second_adj_mask, second_noun_mask]
+
+        self.cache_description_id_list = None
+        self.cache_chosen_indices = None
+        self.current_step = 0
 
     def get_chosen_strings(self, v_idx, n_idx):
         v_idx_np = to_np(v_idx)

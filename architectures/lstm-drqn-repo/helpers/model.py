@@ -12,15 +12,14 @@ logger = logging.getLogger(__name__)
 class LSTM_DQN(torch.nn.Module):
     model_name = 'lstm_dqn'
 
-    def __init__(self, model_config, word_vocab, verb_map, noun_map, enable_cuda=False):
+    def __init__(self, model_config, word_vocab, generate_length=5, enable_cuda=False):
         super(LSTM_DQN, self).__init__()
         self.model_config = model_config
         self.enable_cuda = enable_cuda
         self.word_vocab_size = len(word_vocab)
         self.id2word = word_vocab
-        self.n_actions = len(verb_map)
-        self.n_objects = len(noun_map)
         self.read_config()
+        self.generate_length = generate_length
         self._def_layers()
         self.init_weights()
         # self.print_parameters()
@@ -57,19 +56,23 @@ class LSTM_DQN(torch.nn.Module):
                                    dropout_between_rnn_layers=self.dropout_between_rnn_layers)
 
         # Recurrent network for temporal dependencies (a.k.a history).
-
-        self.action_scorer_shared_recurrent = LSTMCell(input_size=self.encoder_rnn_hidden_size[-1],
-                                                       hidden_size=self.action_scorer_hidden_dim)
-
+        self.action_scorer_shared_recurrent = LSTMCell(
+            input_size=self.encoder_rnn_hidden_size[-1],
+            hidden_size=self.action_scorer_hidden_dim
+        )
         self.action_scorer_shared = torch.nn.Linear(self.encoder_rnn_hidden_size[-1], self.action_scorer_hidden_dim)
-        self.action_scorer_action = torch.nn.Linear(self.action_scorer_hidden_dim, self.n_actions, bias=False)
-        self.action_scorer_object = torch.nn.Linear(self.action_scorer_hidden_dim, self.n_objects, bias=False)
+
+        action_scorers = []
+        for _ in range(self.generate_length):
+            action_scorers.append(torch.nn.Linear(self.action_scorer_hidden_dim, self.word_vocab_size, bias=False))
+        self.action_scorers = torch.nn.ModuleList(action_scorers)
+
         self.fake_recurrent_mask = None
 
     def init_weights(self):
-        torch.nn.init.xavier_uniform_(self.action_scorer_shared.weight.data, gain=1)
-        torch.nn.init.xavier_uniform_(self.action_scorer_action.weight.data, gain=1)
-        torch.nn.init.xavier_uniform_(self.action_scorer_object.weight.data, gain=1)
+        torch.nn.init.xavier_uniform_(self.action_scorer_shared.weight.data)
+        for i in range(len(self.action_scorers)):
+            torch.nn.init.xavier_uniform_(self.action_scorers[i].weight.data)
         self.action_scorer_shared.bias.data.fill_(0)
 
     def representation_generator(self, _input_words):
