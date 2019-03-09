@@ -90,9 +90,12 @@ class LSTM_DQN(torch.nn.Module):
                 self.fake_recurrent_mask = self.fake_recurrent_mask.cuda()
 
         new_h, new_c = self.action_scorer_shared_recurrent.forward(state_representation, self.fake_recurrent_mask, last_hidden, last_cell)
-        action_rank = self.action_scorer_action.forward(new_h)  # batch x n_action
-        object_rank = self.action_scorer_object.forward(new_h)  # batch x n_object
-        return action_rank, object_rank, new_h, new_c
+        
+        action_ranks = []
+        for i in range(len(self.action_scorers)):
+            action_ranks.append(self.action_scorers[i].forward(new_h))  # batch x n_vocab
+        
+        return action_ranks, new_h, new_c
 
     def action_scorer(self, state_representation):
         hidden = self.action_scorer_shared.forward(state_representation)  # batch x hid
