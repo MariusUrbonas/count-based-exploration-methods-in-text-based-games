@@ -5,6 +5,7 @@ import random
 import copy
 # from matplotlib import pyplot as plt
 from pprint import pprint
+import spacy
 
 import torch
 import torch.nn.functional as F
@@ -189,6 +190,16 @@ class RLAgent(object):
         self.observation_cache_capacity = config['general']['observation_cache_capacity']
         self.observation_cache = ObservationHistoryCache(self.observation_cache_capacity)
 
+        self.nlp = spacy.load('en', disable=['ner', 'parser', 'tagger'])
+        self.preposition_map = {"take": "from",
+                                "chop": "with",
+                                "slice": "with",
+                                "dice": "with",
+                                "cook": "with",
+                                "insert": "into",
+                                "put": "on"}
+        self.single_word_verbs = set(["inventory", "look"])
+
     def load_pretrained_model(self, load_from):
         # load model, if there is any
         print("loading best model------------------------------------------------------------------\n")
@@ -243,43 +254,74 @@ class RLAgent(object):
         self.cache_chosen_indices = None
         self.current_step = 0
 
-    def get_chosen_strings(self, v_idx, n_idx):
-        v_idx_np = to_np(v_idx)
-        n_idx_np = to_np(n_idx)
+    def get_chosen_strings(self, chosen_indices):
+        """
+        Turns list of word indices into actual command strings.
+
+        Arguments:
+            chosen_indices: Word indices chosen by model.
+        """
+        chosen_indices_np = [to_np(item)[:, 0] for item in chosen_indices]
         res_str = []
-        for i in range(n_idx_np.shape[0]):
-            v, n = self.verb_map[v_idx_np[i]], self.noun_map[n_idx_np[i]]
-            res_str.append(self.word_vocab[v] + " " + self.word_vocab[n])
+        batch_size = chosen_indices_np[0].shape[0]
+        for i in range(batch_size):
+            verb, adj, noun, adj_2, noun_2 = chosen_indices_np[0][i],\
+                                             chosen_indices_np[1][i],\
+                                             chosen_indices_np[2][i],\
+                                             chosen_indices_np[3][i],\
+                                             chosen_indices_np[4][i]
+            res_str.append(self.word_ids_to_commands(verb, adj, noun, adj_2, noun_2))
         return res_str
 
-    def choose_random_command(self, verb_rank, noun_rank):
-        batch_size = verb_rank.size(0)
-        vr, nr = to_np(verb_rank), to_np(noun_rank)
+    def choose_random_command(self, word_ranks, word_masks_np):
+        """
+        Generate a command randomly, for epsilon greedy.
 
-        v_idx, n_idx = [], []
+        Arguments:
+            word_ranks: Q values for each word by model.action_scorer.
+            word_masks_np: Vocabulary masks for words depending on their type (verb, adj, noun).
+        """
+        batch_size = word_ranks[0].size(0)
+        word_ranks_np = [to_np(item) for item in word_ranks]  # list of batch x n_vocab
+        word_ranks_np = [r * m for r, m in zip(word_ranks_np, word_masks_np)]  # list of batch x n_vocab
+        word_indices = []
+        for i in range(len(word_ranks_np)):
+            indices = []
+            for j in range(batch_size):
+                msk = word_masks_np[i][j]  # vocab
+                indices.append(np.random.choice(len(msk), p=msk / np.sum(msk, -1)))
+            word_indices.append(np.array(indices))
+        # word_indices: list of batch
+        word_qvalues = [[] for _ in word_masks_np]
         for i in range(batch_size):
-            v_idx.append(np.random.choice(len(vr[i]), 1)[0])
-            n_idx.append(np.random.choice(len(nr[i]), 1)[0])
-        v_qvalue, n_qvalue = [], []
-        for i in range(batch_size):
-            v_qvalue.append(verb_rank[i][v_idx[i]])
-            n_qvalue.append(noun_rank[i][n_idx[i]])
-        v_qvalue, n_qvalue = torch.stack(v_qvalue), torch.stack(n_qvalue)
-        v_idx, n_idx = to_pt(np.array(v_idx), self.use_cuda), to_pt(np.array(n_idx), self.use_cuda)
-        return v_qvalue, v_idx, n_qvalue, n_idx
+            for j in range(len(word_qvalues)):
+                word_qvalues[j].append(word_ranks[j][i][word_indices[j][i]])
+        word_qvalues = [torch.stack(item) for item in word_qvalues]
+        word_indices = [to_pt(item, self.use_cuda) for item in word_indices]
+        word_indices = [item.unsqueeze(-1) for item in word_indices]  # list of batch x 1
+        return word_qvalues, word_indices
 
-    def choose_maxQ_command(self, verb_rank, noun_rank):
-        batch_size = verb_rank.size(0)
-        vr, nr = to_np(verb_rank), to_np(noun_rank)
-        v_idx = np.argmax(vr, -1)
-        n_idx = np.argmax(nr, -1)
-        v_qvalue, n_qvalue = [], []
+    def choose_maxQ_command(self, word_ranks, word_masks_np):
+        """
+        Generate a command by maximum q values, for epsilon greedy.
+
+        Arguments:
+            word_ranks: Q values for each word by model.action_scorer.
+            word_masks_np: Vocabulary masks for words depending on their type (verb, adj, noun).
+        """
+        batch_size = word_ranks[0].size(0)
+        word_ranks_np = [to_np(item) for item in word_ranks]  # list of batch x n_vocab
+        word_ranks_np = [r - np.min(r) for r in word_ranks_np] # minus the min value, so that all values are non-negative
+        word_ranks_np = [r * m for r, m in zip(word_ranks_np, word_masks_np)]  # list of batch x n_vocab
+        word_indices = [np.argmax(item, -1) for item in word_ranks_np]  # list of batch
+        word_qvalues = [[] for _ in word_masks_np]
         for i in range(batch_size):
-            v_qvalue.append(verb_rank[i][v_idx[i]])
-            n_qvalue.append(noun_rank[i][n_idx[i]])
-        v_qvalue, n_qvalue = torch.stack(v_qvalue), torch.stack(n_qvalue)
-        v_idx, n_idx = to_pt(v_idx, self.use_cuda), to_pt(n_idx, self.use_cuda)
-        return v_qvalue, v_idx, n_qvalue, n_idx
+            for j in range(len(word_qvalues)):
+                word_qvalues[j].append(word_ranks[j][i][word_indices[j][i]])
+        word_qvalues = [torch.stack(item) for item in word_qvalues]
+        word_indices = [to_pt(item, self.use_cuda) for item in word_indices]
+        word_indices = [item.unsqueeze(-1) for item in word_indices]  # list of batch x 1
+        return word_qvalues, word_indices
 
     def get_ranks(self, input_description, prev_hidden=None, prev_cell=None):
         state_representation = self.model.representation_generator(input_description)
@@ -287,11 +329,11 @@ class RLAgent(object):
         return word_ranks, curr_hidden, curr_cell
 
     def generate_one_command(self, input_description, prev_hidden=None, prev_cell=None, epsilon=0.2):
-        verb_rank, noun_rank, curr_hidden, curr_cell = self.get_ranks(input_description, prev_hidden, prev_cell)  # batch x n_verb, batch x n_noun
+        word_ranks, curr_hidden, curr_cell = self.get_ranks(input_description, prev_hidden, prev_cell)  # batch x n_verb, batch x n_noun
         curr_hidden = curr_hidden.detach()
         curr_cell = curr_cell.detach()
-        v_qvalue_maxq, v_idx_maxq, n_qvalue_maxq, n_idx_maxq = self.choose_maxQ_command(verb_rank, noun_rank)
-        v_qvalue_random, v_idx_random, n_qvalue_random, n_idx_random = self.choose_random_command(verb_rank, noun_rank)
+        qvalue_maxq, idx_maxq = self.choose_maxQ_command(word_ranks, self.word_masks_np)
+        qvalue_random, idx_random = self.choose_random_command(word_ranks, self.word_masks_np)
 
         # random number for epsilon greedy
         rand_num = np.random.uniform(low=0.0, high=1.0, size=(input_description.size(0),))
@@ -300,13 +342,12 @@ class RLAgent(object):
         less_than_epsilon = to_pt(less_than_epsilon, self.use_cuda, type='float')
         greater_than_epsilon = to_pt(greater_than_epsilon, self.use_cuda, type='float')
         less_than_epsilon, greater_than_epsilon = less_than_epsilon.long(), greater_than_epsilon.long()
-        v_idx = less_than_epsilon * v_idx_random + greater_than_epsilon * v_idx_maxq
-        n_idx = less_than_epsilon * n_idx_random + greater_than_epsilon * n_idx_maxq
-        v_idx, n_idx = v_idx.detach(), n_idx.detach()
+        
+        chosen_indices = idx_maxq
+        chosen_indices = [item.detach() for item in chosen_indices]
+        chosen_strings = self.get_chosen_strings(chosen_indices)
 
-        chosen_strings = self.get_chosen_strings(v_idx, n_idx)
-
-        return v_idx, n_idx, chosen_strings, curr_hidden, curr_cell
+        return idx_maxq, chosen_strings, curr_hidden, curr_cell
 
     def get_game_step_info(self, ob, infos, prev_actions=None):
         # concat d/i/q/f together as one string
@@ -518,3 +559,32 @@ class RLAgent(object):
         request_infos.objective = True
         request_infos.extras = ["recipe"]
         return request_infos
+
+    def word_ids_to_commands(self, verb, adj, noun, adj_2, noun_2):
+        """
+        Turn the 5 indices into actual command strings.
+
+        Arguments:
+            verb: Index of the guessing verb in vocabulary
+            adj: Index of the guessing adjective in vocabulary
+            noun: Index of the guessing noun in vocabulary
+            adj_2: Index of the second guessing adjective in vocabulary
+            noun_2: Index of the second guessing noun in vocabulary
+        """
+        # turns 5 indices into actual command strings
+        if self.word_vocab[verb] in self.single_word_verbs:
+            return self.word_vocab[verb]
+        if adj == self.EOS_id:
+            res = self.word_vocab[verb] + " " + self.word_vocab[noun]
+        else:
+            res = self.word_vocab[verb] + " " + self.word_vocab[adj] + " " + self.word_vocab[noun]
+        if self.word_vocab[verb] not in self.preposition_map:
+            return res
+        if noun_2 == self.EOS_id:
+            return res
+        prep = self.preposition_map[self.word_vocab[verb]]
+        if adj_2 == self.EOS_id:
+            res = res + " " + prep + " " + self.word_vocab[noun_2]
+        else:
+            res =  res + " " + prep + " " + self.word_vocab[adj_2] + " " + self.word_vocab[noun_2]
+        return res

@@ -147,7 +147,7 @@ def train(game_files, config):
 
         while not all(dones):
             agent.model.train()
-            v_idx, n_idx, chosen_strings, curr_ras_hidden, curr_ras_cell = agent.generate_one_command(input_description, curr_ras_hidden, curr_ras_cell, epsilon=epsilon)
+            idx, chosen_strings, curr_ras_hidden, curr_ras_cell = agent.generate_one_command(input_description, curr_ras_hidden, curr_ras_cell, epsilon=epsilon)
             obs, rewards, dones, infos = env.step(chosen_strings)
             curr_observation_strings = agent.get_observation_strings(infos)
             if provide_prev_action:
