@@ -196,7 +196,8 @@ class CustomAgent:
         self.best_avg_score_so_far = 0.0
 
         # Counting to explore history
-        self.history_
+        self.state_histories = HistoryStateCache(self.batch_size)
+        self.counting_to_explore_beta = self.config['general']['counting_to_explore_beta']
 
     def train(self):
         """
@@ -570,7 +571,10 @@ class CustomAgent:
             self.scores.append(scores)
             self.dones.append(dones)
             # compute previous step's rewards and masks
-            rewards_np, rewards, mask_np, mask = self.compute_reward()
+            rewards_np, rewards, mask_np, mask = self.compute_reward(obs)
+
+            # add observation to history
+            self.state_histories.push(obs)
 
         input_description, description_id_list = self.get_game_step_info(obs, infos)
         # generate commands for one game step, epsilon greedy is applied, i.e.,
