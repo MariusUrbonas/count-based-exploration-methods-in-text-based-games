@@ -2,7 +2,7 @@ general:
   discount_gamma: 0.5
   random_seed: 42
 
-  counting_to_explore_beta: 1
+  counting_to_explore_beta: 0.01
   use_episodic_discovery_bonus: True
 
   use_cuda: True  # disable this when running on machine without cuda
