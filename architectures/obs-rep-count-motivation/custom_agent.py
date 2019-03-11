@@ -133,27 +133,27 @@ class HistoryActionStateCacheInfinite(object):
         """stuff is float."""
         for state, action in zip(states, actions):
             words = action.split()
-            if hash(state) not in self.memory:
-                self.memory[hash(state)] = {}
+            if hash(tuple(state)) not in self.memory:
+                self.memory[hash(tuple(state))] = {}
             for word in words:
                 if word not in self.memory[hash(tuple(state))]:
-                    self.memory[hash(state)][word] = 1
+                    self.memory[hash(tuple(state))][word] = 1
                 else:
-                    self.memory[hash(state)][word] += 1
+                    self.memory[hash(tuple(state))][word] += 1
 
     # def get_avg(self):
     #     return np.mean(np.array(self.memory))
 
     def reset(self):
         self.memory = {}
-
+# obs come through as np.ndarrays??
     def getBonus(self, obs, word2id):
         """returns an array of word bonuses"""
         word_bonuses = [[0]*len(word2id)]*len(obs)
         for i, ob in enumerate(obs):
-            if hash(ob) in self.memory:
-                for word in self.memory[hash(ob)]:
-                    word_bonuses[i][word2id[word]] = self.memory[hash(ob)][word]
+            if hash(tuple(ob)) in self.memory:
+                for word in self.memory[hash(tuple(ob))]:
+                    word_bonuses[i][word2id[word]] = self.memory[hash(tuple(ob))][word]
 
         return word_bonuses
     def __len__(self):
