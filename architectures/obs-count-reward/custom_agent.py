@@ -47,6 +47,31 @@ class HistoryScoreCache(object):
         return len(self.memory)
 
 
+class HistoryStateCache(object):
+
+    def __init__(self, capacity=None):
+        self.capacity = capacity  # None means infinite capacity
+        self.reset()
+    
+    def get_count(self, state_string):
+        """Return the number of occurrences of `state_string` in the history."""
+
+        return self.history.count(state_string)
+
+    def push(self, state_string):
+        """Add `state_string` to the history."""
+
+        if self.capacity is None or len(self.history) < self.capacity:
+            self.history.append(state_string)
+        else:
+            self.history = self.memory[1:] + [state_string]
+
+    def reset(self):
+        """Clear the history."""
+
+        self.history = []
+
+
 class PrioritizedReplayMemory(object):
 
     def __init__(self, capacity=100000, priority_fraction=0.0):
