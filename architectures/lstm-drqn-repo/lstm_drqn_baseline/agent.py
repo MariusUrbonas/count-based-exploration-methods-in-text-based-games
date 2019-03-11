@@ -558,6 +558,7 @@ class RLAgent(object):
         request_infos.verbs = True
         request_infos.objective = True
         request_infos.extras = ["recipe"]
+        request_infos.intermediate_reward = True
         return request_infos
 
     def word_ids_to_commands(self, verb, adj, noun, adj_2, noun_2):

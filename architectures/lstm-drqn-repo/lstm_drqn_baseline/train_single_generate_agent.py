@@ -160,10 +160,12 @@ def train(game_files, config):
             agent.revisit_counting_rewards.append(revisit_counting_rewards)
             revisit_counting_rewards = [float(format(item, ".3f")) for item in revisit_counting_rewards]
 
+            print(len(infos))
+            exit()
             for i in range(len(infos)):
                 print_command_string[i].append(chosen_strings[i])
                 print_rewards[i].append(rewards[i])
-                print_interm_rewards[i].append(infos[i]["intermediate_reward"])
+                print_interm_rewards[i].append(infos["intermediate_reward"][i])
                 print_rc_rewards[i].append(revisit_counting_rewards[i])
             if type(dones) is bool:
                 dones = [dones] * batch_size
