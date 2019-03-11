@@ -1,6 +1,13 @@
 general:
   discount_gamma: 0.5
   random_seed: 42
+
+  # Counting to explore (https://arxiv.org/pdf/1806.11525.pdf) bonuses; at most one should be True
+  counting_to_explore_beta: 0.01
+  state_history_capacity: 1000  # None means infinite
+  use_cumulative_counting_bonus: True
+  use_episodic_discovery_bonus: False
+
   use_cuda: True  # disable this when running on machine without cuda
 
   # replay memory
@@ -22,7 +29,7 @@ checkpoint:
   save_frequency: 100
 
 training:
-  batch_size: 16
+  batch_size: 1
   nb_epochs: 500
   max_nb_steps_per_episode: 50  # after this many steps, a game is terminated
   optimizer:

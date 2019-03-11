@@ -47,6 +47,33 @@ class HistoryScoreCache(object):
         return len(self.memory)
 
 
+class HistoryStateCache(object):
+
+    def __init__(self, batch_size, capacity=None):
+        self.batch_size = batch_size
+        self.capacity = capacity  # None means infinite capacity
+        self.reset()
+    
+    def get_counts(self, state_strings):
+        """Return the number of occurrences of `state_string` in the history for each agent."""
+
+        return [hist.count(state) for hist, state in zip(self.histories, state_strings)]
+
+    def push(self, state_strings):
+        """Add `state_string` for each agent to its history."""
+
+        for i, state_string in enumerate(state_strings):
+            if self.capacity is None or len(self.histories[i]) < self.capacity:
+                self.histories[i].append(state_string)
+            else:
+                self.histories = self.histories[i][1:] + [state_string]
+
+    def reset(self):
+        """Clear the histories."""
+
+        self.histories = [[] for _ in range(self.batch_size)]
+
+
 class PrioritizedReplayMemory(object):
 
     def __init__(self, capacity=100000, priority_fraction=0.0):
@@ -167,6 +194,16 @@ class CustomAgent:
         self._epsiode_has_started = False
         self.history_avg_scores = HistoryScoreCache(capacity=1000)
         self.best_avg_score_so_far = 0.0
+
+        # Counting to explore history
+        self.counting_to_explore_beta = self.config['general']['counting_to_explore_beta']
+        self.state_history_capacity = self.config['general']['state_history_capacity']
+
+        self.use_episodic_discovery_bonus = self.config['general']['use_episodic_discovery_bonus']
+        self.use_cumulative_counting_bonus = self.config['general']['use_cumulative_counting_bonus']
+
+        if self.use_episodic_discovery_bonus or self.use_cumulative_counting_bonus:
+            self.state_histories = HistoryStateCache(self.batch_size, capacity=self.state_history_capacity)
 
     def train(self):
         """
@@ -539,8 +576,13 @@ class CustomAgent:
             # append scores / dones from previous step into memory
             self.scores.append(scores)
             self.dones.append(dones)
+
+            # add observation to history for counting to explore
+            if self.use_episodic_discovery_bonus or self.use_cumulative_counting_bonus:
+                self.state_histories.push(obs)
+
             # compute previous step's rewards and masks
-            rewards_np, rewards, mask_np, mask = self.compute_reward()
+            rewards_np, rewards, mask_np, mask = self.compute_reward(obs)
 
         input_description, description_id_list = self.get_game_step_info(obs, infos)
         # generate commands for one game step, epsilon greedy is applied, i.e.,
@@ -591,7 +633,7 @@ class CustomAgent:
             return  # Nothing to return.
         return chosen_strings
 
-    def compute_reward(self):
+    def compute_reward(self, obs):
         """
         Compute rewards by agent. Note this is different from what the training/evaluation
         scripts do. Agent keeps track of scores and other game information for training purpose.
@@ -610,6 +652,19 @@ class CustomAgent:
         # agent have recieved. so the reward it gets in the current game step
         # is the new value minus values at previous step.
         rewards = np.array(self.scores[-1], dtype='float32')  # batch
+
+        # Add cumulative counting bonus (r^{+} in Sec. 3.2 of https://arxiv.org/pdf/1806.11525.pdf)
+        if self.use_cumulative_counting_bonus:
+            counts = self.state_histories.get_counts(obs)
+            bonus = [self.counting_to_explore_beta * count**(-1/3) for count in counts]
+            rewards = rewards + np.array(bonus)
+
+        # Add episodic discovery bonus (r^{++} in Sec. 3.2 of https://arxiv.org/pdf/1806.11525.pdf)
+        if self.use_episodic_discovery_bonus:
+            counts = self.state_histories.get_counts(obs)
+            bonus = [self.counting_to_explore_beta if count == 1 else 0 for count in counts]
+            rewards = rewards + np.array(bonus)
+
         if len(self.scores) > 1:
             prev_rewards = np.array(self.scores[-2], dtype='float32')
             rewards = rewards - prev_rewards
@@ -685,3 +740,7 @@ class CustomAgent:
         # annealing
         if self.current_episode < self.epsilon_anneal_episodes:
             self.epsilon -= (self.epsilon_anneal_from - self.epsilon_anneal_to) / float(self.epsilon_anneal_episodes)
+
+        # Discovery bonus
+        if self.use_episodic_discovery_bonus:
+            self.state_histories.reset()
