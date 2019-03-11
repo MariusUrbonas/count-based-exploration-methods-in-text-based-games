@@ -22,7 +22,7 @@ checkpoint:
   save_frequency: 100
 
 training:
-  batch_size: 16
+  batch_size: 1
   nb_epochs: 500
   max_nb_steps_per_episode: 50  # after this many steps, a game is terminated
   optimizer:

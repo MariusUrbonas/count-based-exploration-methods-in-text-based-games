@@ -49,27 +49,29 @@ class HistoryScoreCache(object):
 
 class HistoryStateCache(object):
 
-    def __init__(self, capacity=None):
+    def __init__(self, batch_size, capacity=None):
+        self.batch_size = batch_size
         self.capacity = capacity  # None means infinite capacity
         self.reset()
     
-    def get_count(self, state_string):
-        """Return the number of occurrences of `state_string` in the history."""
+    def get_count(self, state_strings):
+        """Return the number of occurrences of `state_string` in the history for each agent."""
 
-        return self.history.count(state_string)
+        return [hist.count[state] for hist, state in zip(self.histories, state_strings)]
 
-    def push(self, state_string):
-        """Add `state_string` to the history."""
+    def push(self, state_strings):
+        """Add `state_string` for each agent to its history."""
 
-        if self.capacity is None or len(self.history) < self.capacity:
-            self.history.append(state_string)
-        else:
-            self.history = self.memory[1:] + [state_string]
+        for i, state_string in enumerate(state_strings):
+            if self.capacity is None or len(self.histories[i]) < self.capacity:
+                self.histories[i].append(state_string)
+            else:
+                self.histories = self.histories[i][1:] + [state_string]
 
     def reset(self):
-        """Clear the history."""
+        """Clear the histories."""
 
-        self.history = []
+        self.histories = [[] for _ in range(self.batch_size)]
 
 
 class PrioritizedReplayMemory(object):
@@ -192,6 +194,9 @@ class CustomAgent:
         self._epsiode_has_started = False
         self.history_avg_scores = HistoryScoreCache(capacity=1000)
         self.best_avg_score_so_far = 0.0
+
+        # Counting to explore history
+        self.history_
 
     def train(self):
         """
