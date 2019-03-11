@@ -570,11 +570,12 @@ class CustomAgent:
             # append scores / dones from previous step into memory
             self.scores.append(scores)
             self.dones.append(dones)
-            # compute previous step's rewards and masks
-            rewards_np, rewards, mask_np, mask = self.compute_reward(obs)
 
             # add observation to history
             self.state_histories.push(obs)
+
+            # compute previous step's rewards and masks
+            rewards_np, rewards, mask_np, mask = self.compute_reward(obs)
 
         input_description, description_id_list = self.get_game_step_info(obs, infos)
         # generate commands for one game step, epsilon greedy is applied, i.e.,
@@ -625,7 +626,7 @@ class CustomAgent:
             return  # Nothing to return.
         return chosen_strings
 
-    def compute_reward(self):
+    def compute_reward(self, obs):
         """
         Compute rewards by agent. Note this is different from what the training/evaluation
         scripts do. Agent keeps track of scores and other game information for training purpose.
@@ -644,6 +645,12 @@ class CustomAgent:
         # agent have recieved. so the reward it gets in the current game step
         # is the new value minus values at previous step.
         rewards = np.array(self.scores[-1], dtype='float32')  # batch
+
+        # Add episodic discovery bonus (r^{++} in Sec. 3.2 of https://arxiv.org/pdf/1806.11525.pdf)
+        counts = self.state_histories.get_counts(obs)
+        bonus = [self.counting_to_explore_beta if count == 1 else 0 for count in counts]
+        rewards = rewards + np.array(bonus)
+
         if len(self.scores) > 1:
             prev_rewards = np.array(self.scores[-2], dtype='float32')
             rewards = rewards - prev_rewards
