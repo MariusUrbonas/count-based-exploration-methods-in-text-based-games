@@ -86,6 +86,59 @@ class PrioritizedReplayMemory(object):
     def __len__(self):
         return len(self.alpha_memory) + len(self.beta_memory)
 
+class HistoryActionStateCache(object):
+
+    def __init__(self, capacity=100):
+        self.capacity = capacity
+        self.reset()
+
+    def push(self, states, actions):
+        """stuff is float."""
+        for state, action in zip(states, actions):
+            words = action.split()
+            stuff = {}
+            stuff["state"] = hash(state)
+            stuff["words"] = words
+            if len(self.memory) < self.capacity:
+                self.memory.append(stuff)
+            else:
+                self.memory = self.memory[1:] + [stuff]
+
+    # def get_avg(self):
+    #     return np.mean(np.array(self.memory))
+
+    def reset(self):
+        self.memory = []
+
+    def __len__(self):
+        return len(self.memory)
+
+class HistoryActionStateCacheInfinite(object):
+
+    def __init__(self):
+        self.reset()
+
+    def push(self, states, actions):
+        """stuff is float."""
+        for state, action in zip(states, actions):
+            words = action.split()
+            if hash(state) not in self.memory:
+                self.memory[hash(state)] = {}
+            for word in words:
+                if word not in self.memory[hash(state)]:
+                    self.memory[hash(state)][word] = 1
+                else:
+                    self.memory[hash(state)][word] += 1
+
+    # def get_avg(self):
+    #     return np.mean(np.array(self.memory))
+
+    def reset(self):
+        self.memory = {}
+
+    def __len__(self):
+        return len(self.memory)
+
 
 class CustomAgent:
     def __init__(self, config_file_name):
@@ -106,6 +159,7 @@ class CustomAgent:
         self.batch_size = self.config['training']['batch_size']
         self.max_nb_steps_per_episode = self.config['training']['max_nb_steps_per_episode']
         self.nb_epochs = self.config['training']['nb_epochs']
+        self.nb_state_action_cash = self.config['training']['nb_state_action_cash']
 
         # Set the random seed manually for reproducibility.
         np.random.seed(self.config['general']['random_seed'])
@@ -166,6 +220,12 @@ class CustomAgent:
         self.current_step = 0
         self._epsiode_has_started = False
         self.history_avg_scores = HistoryScoreCache(capacity=1000)
+        if self.nb_state_action_cash == -1:
+            # do infinite
+            self.history_state_action_cache = HistoryActionStateCacheInfinite()
+        else:
+            self.history_state_action_cache = HistoryActionStateCache(capacity=self.nb_state_action_cash)
+
         self.best_avg_score_so_far = 0.0
 
     def train(self):
@@ -431,7 +491,7 @@ class CustomAgent:
         word_indices = [item.unsqueeze(-1) for item in word_indices]  # list of batch x 1
         return word_qvalues, word_indices
 
-    def choose_maxQ_command(self, word_ranks, word_masks_np):
+    def choose_maxQ_command(self, word_ranks, word_masks_np, obs):
         """
         Generate a command by maximum q values, for epsilon greedy.
 
@@ -498,7 +558,7 @@ class CustomAgent:
 
         input_description, _ = self.get_game_step_info(obs, infos)
         word_ranks = self.get_ranks(input_description)  # list of batch x vocab
-        _, word_indices_maxq = self.choose_maxQ_command(word_ranks, self.word_masks_np)
+        _, word_indices_maxq = self.choose_maxQ_command(word_ranks, self.word_masks_np, obs)
 
         chosen_indices = word_indices_maxq
         chosen_indices = [item.detach() for item in chosen_indices]
@@ -546,7 +606,7 @@ class CustomAgent:
         # generate commands for one game step, epsilon greedy is applied, i.e.,
         # there is epsilon of chance to generate random commands
         word_ranks = self.get_ranks(input_description)  # list of batch x vocab
-        _, word_indices_maxq = self.choose_maxQ_command(word_ranks, self.word_masks_np)
+        _, word_indices_maxq = self.choose_maxQ_command(word_ranks, self.word_masks_np, obs)
         _, word_indices_random = self.choose_random_command(word_ranks, self.word_masks_np)
         # random number for epsilon greedy
         rand_num = np.random.uniform(low=0.0, high=1.0, size=(input_description.size(0), 1))
@@ -575,7 +635,7 @@ class CustomAgent:
 
         # update neural model by replaying snapshots in replay memory
         if self.current_step > 0 and self.current_step % self.update_per_k_game_steps == 0:
-            loss = self.update()
+            loss = self.update(obs)
             if loss is not None:
                 # Backpropagate
                 self.optimizer.zero_grad()
@@ -589,6 +649,9 @@ class CustomAgent:
         if all(dones):
             self._end_episode(obs, scores, infos)
             return  # Nothing to return.
+        # Update state-action counts
+        if self.current_step > 0:
+            self.history_state_action_cache.push(obs, chosen_strings)
         return chosen_strings
 
     def compute_reward(self):
@@ -617,7 +680,7 @@ class CustomAgent:
 
         return rewards, rewards_pt, mask, mask_pt
 
-    def update(self):
+    def update(self, obs):
         """
         Update neural model in agent. In this example we follow algorithm
         of updating model in dqn with replay memory.
@@ -642,7 +705,7 @@ class CustomAgent:
         next_word_ranks = self.get_ranks(next_input_observation)  # batch x n_verb, batch x n_noun, batchx n_second_noun
         next_word_masks = list(list(zip(*batch.next_word_masks)))
         next_word_masks = [np.stack(item, 0) for item in next_word_masks]
-        next_word_qvalues, _ = self.choose_maxQ_command(next_word_ranks, next_word_masks)
+        next_word_qvalues, _ = self.choose_maxQ_command(next_word_ranks, next_word_masks, obs)
         next_q_value = torch.mean(torch.stack(next_word_qvalues, -1), -1)  # batch
         next_q_value = next_q_value.detach()
 
