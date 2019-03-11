@@ -97,7 +97,7 @@ class HistoryActionStateCache(object):
         for state, action in zip(states, actions):
             words = action.split()
             stuff = {}
-            stuff["state"] = hash(state)
+            stuff["state"] = hash(tuple(state))
             stuff["words"] = words
             if len(self.memory) < self.capacity:
                 self.memory.append(stuff)
@@ -106,9 +106,20 @@ class HistoryActionStateCache(object):
 
     # def get_avg(self):
     #     return np.mean(np.array(self.memory))
+    # self.word2id
 
     def reset(self):
         self.memory = []
+
+    def getBonus(self, obs, word2id):
+        """returns an array of word bonuses"""
+        word_bonuses = [[0]*len(word2id)]*len(obs)
+        for i, word_bonus in enumerate(word_bonuses):
+            for memory in self.memory:
+                if(memory["state"] == hash(tuple(obs[i]))):
+                    for word in memory["words"]:
+                        word_bonus[word2id[word]] += 1
+        return word_bonuses
 
     def __len__(self):
         return len(self.memory)
@@ -125,7 +136,7 @@ class HistoryActionStateCacheInfinite(object):
             if hash(state) not in self.memory:
                 self.memory[hash(state)] = {}
             for word in words:
-                if word not in self.memory[hash(state)]:
+                if word not in self.memory[hash(tuple(state))]:
                     self.memory[hash(state)][word] = 1
                 else:
                     self.memory[hash(state)][word] += 1
@@ -136,6 +147,15 @@ class HistoryActionStateCacheInfinite(object):
     def reset(self):
         self.memory = {}
 
+    def getBonus(self, obs, word2id):
+        """returns an array of word bonuses"""
+        word_bonuses = [[0]*len(word2id)]*len(obs)
+        for i, ob in enumerate(obs):
+            if hash(ob) in self.memory:
+                for word in self.memory[hash(ob)]:
+                    word_bonuses[i][word2id[word]] = self.memory[hash(ob)][word]
+
+        return word_bonuses
     def __len__(self):
         return len(self.memory)
 
@@ -160,6 +180,7 @@ class CustomAgent:
         self.max_nb_steps_per_episode = self.config['training']['max_nb_steps_per_episode']
         self.nb_epochs = self.config['training']['nb_epochs']
         self.nb_state_action_cash = self.config['training']['nb_state_action_cash']
+        self.add_to_word_ranks = self.config['training']['add_to_word_ranks']
 
         # Set the random seed manually for reproducibility.
         np.random.seed(self.config['general']['random_seed'])
@@ -407,13 +428,13 @@ class CustomAgent:
         for i, d in enumerate(description_token_list):
             if len(d) == 0:
                 description_token_list[i] = ["end"]  # if empty description, insert word "end"
-        description_id_list = [_words_to_ids(tokens, self.word2id) for tokens in description_token_list]
-        description_id_list = [_d + _i + _q + _f + _pa for (_d, _i, _q, _f, _pa) in zip(description_id_list, inventory_id_list, quest_id_list, feedback_id_list, prev_action_id_list)]
+        obs_id_list = [_words_to_ids(tokens, self.word2id) for tokens in description_token_list]
+        description_id_list = [_d + _i + _q + _f + _pa for (_d, _i, _q, _f, _pa) in zip(obs_id_list, inventory_id_list, quest_id_list, feedback_id_list, prev_action_id_list)]
 
         input_description = pad_sequences(description_id_list, maxlen=max_len(description_id_list)).astype('int32')
         input_description = to_pt(input_description, self.use_cuda)
 
-        return input_description, description_id_list
+        return input_description, description_id_list, obs_id_list
 
     def word_ids_to_commands(self, verb, adj, noun, adj_2, noun_2):
         """
@@ -499,8 +520,15 @@ class CustomAgent:
             word_ranks: Q values for each word by model.action_scorer.
             word_masks_np: Vocabulary masks for words depending on their type (verb, adj, noun).
         """
+
         batch_size = word_ranks[0].size(0)
         word_ranks_np = [to_np(item) for item in word_ranks]  # list of batch x n_vocab
+        if self.add_to_word_ranks:
+            for word_rank_np in word_ranks_np:
+                # Add self.memory to word_ranks
+                bonus = np.array( self.history_state_action_cache.getBonus(obs, self.word2id))
+                word_rank_np += bonus
+
         word_ranks_np = [r - np.min(r) for r in word_ranks_np] # minus the min value, so that all values are non-negative
         word_ranks_np = [r * m for r, m in zip(word_ranks_np, word_masks_np)]  # list of batch x n_vocab
         word_indices = [np.argmax(item, -1) for item in word_ranks_np]  # list of batch
@@ -508,6 +536,10 @@ class CustomAgent:
         for i in range(batch_size):
             for j in range(len(word_qvalues)):
                 word_qvalues[j].append(word_ranks[j][i][word_indices[j][i]])
+        if not self.add_to_word_ranks:
+            # Add self.memory to word_qvalues
+            for word_qvalue in word_qvalues:
+                word_qvalue += self.history_state_action_cache.getBonus(obs, self.word2id)
         word_qvalues = [torch.stack(item) for item in word_qvalues]
         word_indices = [to_pt(item, self.use_cuda) for item in word_indices]
         word_indices = [item.unsqueeze(-1) for item in word_indices]  # list of batch x 1
@@ -556,7 +588,7 @@ class CustomAgent:
             self._end_episode(obs, scores, infos)
             return  # Nothing to return.
 
-        input_description, _ = self.get_game_step_info(obs, infos)
+        input_description, _ , _= self.get_game_step_info(obs, infos)
         word_ranks = self.get_ranks(input_description)  # list of batch x vocab
         _, word_indices_maxq = self.choose_maxQ_command(word_ranks, self.word_masks_np, obs)
 
@@ -602,7 +634,7 @@ class CustomAgent:
             # compute previous step's rewards and masks
             rewards_np, rewards, mask_np, mask = self.compute_reward()
 
-        input_description, description_id_list = self.get_game_step_info(obs, infos)
+        input_description, description_id_list, obs_id_list = self.get_game_step_info(obs, infos)
         # generate commands for one game step, epsilon greedy is applied, i.e.,
         # there is epsilon of chance to generate random commands
         word_ranks = self.get_ranks(input_description)  # list of batch x vocab
@@ -635,7 +667,7 @@ class CustomAgent:
 
         # update neural model by replaying snapshots in replay memory
         if self.current_step > 0 and self.current_step % self.update_per_k_game_steps == 0:
-            loss = self.update(obs)
+            loss = self.update()
             if loss is not None:
                 # Backpropagate
                 self.optimizer.zero_grad()
@@ -651,7 +683,7 @@ class CustomAgent:
             return  # Nothing to return.
         # Update state-action counts
         if self.current_step > 0:
-            self.history_state_action_cache.push(obs, chosen_strings)
+            self.history_state_action_cache.push(self.cache_description_id_list, chosen_strings)
         return chosen_strings
 
     def compute_reward(self):
@@ -680,7 +712,7 @@ class CustomAgent:
 
         return rewards, rewards_pt, mask, mask_pt
 
-    def update(self, obs):
+    def update(self):
         """
         Update neural model in agent. In this example we follow algorithm
         of updating model in dqn with replay memory.
@@ -705,7 +737,7 @@ class CustomAgent:
         next_word_ranks = self.get_ranks(next_input_observation)  # batch x n_verb, batch x n_noun, batchx n_second_noun
         next_word_masks = list(list(zip(*batch.next_word_masks)))
         next_word_masks = [np.stack(item, 0) for item in next_word_masks]
-        next_word_qvalues, _ = self.choose_maxQ_command(next_word_ranks, next_word_masks, obs)
+        next_word_qvalues, _ = self.choose_maxQ_command(next_word_ranks, next_word_masks, observation_id_list)
         next_q_value = torch.mean(torch.stack(next_word_qvalues, -1), -1)  # batch
         next_q_value = next_q_value.detach()
 
