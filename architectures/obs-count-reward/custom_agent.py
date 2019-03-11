@@ -54,10 +54,10 @@ class HistoryStateCache(object):
         self.capacity = capacity  # None means infinite capacity
         self.reset()
     
-    def get_count(self, state_strings):
+    def get_counts(self, state_strings):
         """Return the number of occurrences of `state_string` in the history for each agent."""
 
-        return [hist.count[state] for hist, state in zip(self.histories, state_strings)]
+        return [hist.count(state) for hist, state in zip(self.histories, state_strings)]
 
     def push(self, state_strings):
         """Add `state_string` for each agent to its history."""
