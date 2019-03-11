@@ -533,13 +533,15 @@ class CustomAgent:
         word_ranks_np = [r * m for r, m in zip(word_ranks_np, word_masks_np)]  # list of batch x n_vocab
         word_indices = [np.argmax(item, -1) for item in word_ranks_np]  # list of batch
         word_qvalues = [[] for _ in word_masks_np]
+        print(word_qvalues)
         for i in range(batch_size):
             for j in range(len(word_qvalues)):
                 word_qvalues[j].append(word_ranks[j][i][word_indices[j][i]])
+        print(word_qvalues)
         if not self.add_to_word_ranks:
             # Add self.memory to word_qvalues
             for word_qvalue in word_qvalues:
-                word_qvalue += self.history_state_action_cache.getBonus(obs, self.word2id)
+                word_qvalue += np.array(self.history_state_action_cache.getBonus(obs, self.word2id))
         word_qvalues = [torch.stack(item) for item in word_qvalues]
         word_indices = [to_pt(item, self.use_cuda) for item in word_indices]
         word_indices = [item.unsqueeze(-1) for item in word_indices]  # list of batch x 1
