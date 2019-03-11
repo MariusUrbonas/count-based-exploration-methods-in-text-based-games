@@ -1,7 +1,10 @@
 general:
   discount_gamma: 0.5
   random_seed: 42
+
   counting_to_explore_beta: 1
+  use_episodic_discovery_bonus: False
+
   use_cuda: True  # disable this when running on machine without cuda
 
   # replay memory

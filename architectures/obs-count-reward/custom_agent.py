@@ -196,8 +196,11 @@ class CustomAgent:
         self.best_avg_score_so_far = 0.0
 
         # Counting to explore history
-        self.state_histories = HistoryStateCache(self.batch_size)
         self.counting_to_explore_beta = self.config['general']['counting_to_explore_beta']
+
+        self.use_episodic_discovery_bonus = self.config['general']['use_episodic_discovery_bonus']
+        if self.use_episodic_discovery_bonus:
+            self.state_histories = HistoryStateCache(self.batch_size)
 
     def train(self):
         """
@@ -572,7 +575,8 @@ class CustomAgent:
             self.dones.append(dones)
 
             # add observation to history
-            self.state_histories.push(obs)
+            if self.use_episodic_discovery_bonus:
+                self.state_histories.push(obs)
 
             # compute previous step's rewards and masks
             rewards_np, rewards, mask_np, mask = self.compute_reward(obs)
@@ -647,9 +651,10 @@ class CustomAgent:
         rewards = np.array(self.scores[-1], dtype='float32')  # batch
 
         # Add episodic discovery bonus (r^{++} in Sec. 3.2 of https://arxiv.org/pdf/1806.11525.pdf)
-        counts = self.state_histories.get_counts(obs)
-        bonus = [self.counting_to_explore_beta if count == 1 else 0 for count in counts]
-        rewards = rewards + np.array(bonus)
+        if self.use_episodic_discovery_bonus:
+            counts = self.state_histories.get_counts(obs)
+            bonus = [self.counting_to_explore_beta if count == 1 else 0 for count in counts]
+            rewards = rewards + np.array(bonus)
 
         if len(self.scores) > 1:
             prev_rewards = np.array(self.scores[-2], dtype='float32')
