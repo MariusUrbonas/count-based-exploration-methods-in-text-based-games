@@ -199,7 +199,9 @@ class CustomAgent:
         self.counting_to_explore_beta = self.config['general']['counting_to_explore_beta']
 
         self.use_episodic_discovery_bonus = self.config['general']['use_episodic_discovery_bonus']
-        if self.use_episodic_discovery_bonus:
+        self.use_cumulative_counting_bonus = self.config['general']['use_cumulative_counting_bonus']
+
+        if self.use_episodic_discovery_bonus or self.use_cumulative_counting_bonus:
             self.state_histories = HistoryStateCache(self.batch_size)
 
     def train(self):
@@ -574,8 +576,8 @@ class CustomAgent:
             self.scores.append(scores)
             self.dones.append(dones)
 
-            # add observation to history
-            if self.use_episodic_discovery_bonus:
+            # add observation to history for counting to explore
+            if self.use_episodic_discovery_bonus or self.use_cumulative_counting_bonus:
                 self.state_histories.push(obs)
 
             # compute previous step's rewards and masks
@@ -649,6 +651,12 @@ class CustomAgent:
         # agent have recieved. so the reward it gets in the current game step
         # is the new value minus values at previous step.
         rewards = np.array(self.scores[-1], dtype='float32')  # batch
+
+        # Add cumulative counting bonus (r^{+} in Sec. 3.2 of https://arxiv.org/pdf/1806.11525.pdf)
+        if self.use_cumulative_counting_bonus:
+            counts = self.state_histories.get_counts(obs)
+            bonus = [self.counting_to_explore_beta * count**(-1/3) for count in counts]
+            rewards = rewards + np.array(bonus)
 
         # Add episodic discovery bonus (r^{++} in Sec. 3.2 of https://arxiv.org/pdf/1806.11525.pdf)
         if self.use_episodic_discovery_bonus:
