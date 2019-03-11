@@ -197,12 +197,13 @@ class CustomAgent:
 
         # Counting to explore history
         self.counting_to_explore_beta = self.config['general']['counting_to_explore_beta']
+        self.state_history_capacity = self.config['general']['state_history_capacity']
 
         self.use_episodic_discovery_bonus = self.config['general']['use_episodic_discovery_bonus']
         self.use_cumulative_counting_bonus = self.config['general']['use_cumulative_counting_bonus']
 
         if self.use_episodic_discovery_bonus or self.use_cumulative_counting_bonus:
-            self.state_histories = HistoryStateCache(self.batch_size)
+            self.state_histories = HistoryStateCache(self.batch_size, capacity=self.state_history_capacity)
 
     def train(self):
         """
