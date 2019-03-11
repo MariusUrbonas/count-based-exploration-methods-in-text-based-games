@@ -731,3 +731,7 @@ class CustomAgent:
         # annealing
         if self.current_episode < self.epsilon_anneal_episodes:
             self.epsilon -= (self.epsilon_anneal_from - self.epsilon_anneal_to) / float(self.epsilon_anneal_episodes)
+
+        # Discovery bonus
+        if self.use_episodic_discovery_bonus:
+            self.state_histories.reset()
