@@ -49,29 +49,28 @@ class HistoryScoreCache(object):
 
 class HistoryStateCache(object):
 
-    def __init__(self, batch_size, capacity=None):
+    def __init__(self, batch_size):
         self.batch_size = batch_size
-        self.capacity = capacity  # None means infinite capacity
         self.reset()
     
     def get_counts(self, state_strings):
         """Return the number of occurrences of `state_string` in the history for each agent."""
 
-        return [hist.count(state) for hist, state in zip(self.histories, state_strings)]
+        return [hist[state] for hist, state in zip(self.histories, state_strings)]
 
     def push(self, state_strings):
         """Add `state_string` for each agent to its history."""
 
         for i, state_string in enumerate(state_strings):
-            if self.capacity is None or len(self.histories[i]) < self.capacity:
-                self.histories[i].append(state_string)
+            if state_string not in self.histories[i]:
+                self.histories[i][state_string] = 1
             else:
-                self.histories = self.histories[i][1:] + [state_string]
+                self.histories[i][state_string] += 1
 
     def reset(self):
         """Clear the histories."""
 
-        self.histories = [[] for _ in range(self.batch_size)]
+        self.histories = [{} for _ in range(self.batch_size)]
 
 
 class PrioritizedReplayMemory(object):
@@ -196,14 +195,12 @@ class CustomAgent:
         self.best_avg_score_so_far = 0.0
 
         # Counting to explore history
-        self.counting_to_explore_beta = self.config['general']['counting_to_explore_beta']
-        self.state_history_capacity = self.config['general']['state_history_capacity']
-
         self.use_episodic_discovery_bonus = self.config['general']['use_episodic_discovery_bonus']
         self.use_cumulative_counting_bonus = self.config['general']['use_cumulative_counting_bonus']
 
         if self.use_episodic_discovery_bonus or self.use_cumulative_counting_bonus:
-            self.state_histories = HistoryStateCache(self.batch_size, capacity=self.state_history_capacity)
+            self.counting_to_explore_beta = self.config['general']['counting_to_explore_beta']
+            self.state_histories = HistoryStateCache(self.batch_size)
 
     def train(self):
         """
