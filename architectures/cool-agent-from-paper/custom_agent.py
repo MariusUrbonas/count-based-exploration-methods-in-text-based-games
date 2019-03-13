@@ -87,6 +87,48 @@ class PrioritizedReplayMemory(object):
         return len(self.alpha_memory) + len(self.beta_memory)
 
 
+class StateCounter(object):
+
+    def __init__(self):
+        self.count_table = {}
+        self.epsilon = 0.00001
+
+    def safe_add(self, d, value):
+        if value in d:
+            d[value] += 1
+        else:
+            d[value] = 1
+
+    def push(self, states):
+        """stuff is tokenized state."""
+        for state in states:
+            self.safe_add(self.count_table, tuple(state))
+
+    def est_prob_of_state(self, x):
+        try:
+            p = self.count_table[tuple(x)] / len(self)
+        except KeyError:
+            p = self.epsilon / len(self)
+        return p
+
+    def est_prob_hat_of_state(self, x):
+        try:
+            p = (self.count_table[tuple(x)] + 1) / (len(self) + 1)
+        except KeyError:
+            p = (self.epsilon + 1) / len(self) + 1
+        return p
+
+    def pseudo_count(self, x):
+        p = self.est_prob_of_state(x)
+        p_hat = self.est_prob_hat_of_state(x)
+        n_hat = (p * (1 - p_hat))/(p_hat - p)
+        return n_hat
+
+
+    def __len__(self):
+        return len(self.count_table) 
+
+
 class CustomAgent:
     def __init__(self, config_file_name):
         """
@@ -166,7 +208,9 @@ class CustomAgent:
         self.current_step = 0
         self._epsiode_has_started = False
         self.history_avg_scores = HistoryScoreCache(capacity=1000)
+        self.state_distribution = StateCounter()
         self.best_avg_score_so_far = 0.0
+        self.beta = 0.001
 
     def train(self):
         """
@@ -353,7 +397,7 @@ class CustomAgent:
         input_description = pad_sequences(description_id_list, maxlen=max_len(description_id_list)).astype('int32')
         input_description = to_pt(input_description, self.use_cuda)
 
-        return input_description, description_id_list
+        return input_description, description_id_list, description_token_list
 
     def word_ids_to_commands(self, verb, adj, noun, adj_2, noun_2):
         """
@@ -496,7 +540,7 @@ class CustomAgent:
             self._end_episode(obs, scores, infos)
             return  # Nothing to return.
 
-        input_description, _ = self.get_game_step_info(obs, infos)
+        input_description, _, _ = self.get_game_step_info(obs, infos)
         word_ranks = self.get_ranks(input_description)  # list of batch x vocab
         _, word_indices_maxq = self.choose_maxQ_command(word_ranks, self.word_masks_np)
 
@@ -535,14 +579,15 @@ class CustomAgent:
         if self.mode == "eval":
             return self.act_eval(obs, scores, dones, infos)
 
+        input_description, description_id_list, description_token_list = self.get_game_step_info(obs, infos)
+
         if self.current_step > 0:
             # append scores / dones from previous step into memory
             self.scores.append(scores)
             self.dones.append(dones)
             # compute previous step's rewards and masks
-            rewards_np, rewards, mask_np, mask = self.compute_reward()
+            rewards_np, rewards, mask_np, mask = self.compute_reward(description_token_list)
 
-        input_description, description_id_list = self.get_game_step_info(obs, infos)
         # generate commands for one game step, epsilon greedy is applied, i.e.,
         # there is epsilon of chance to generate random commands
         word_ranks = self.get_ranks(input_description)  # list of batch x vocab
@@ -591,7 +636,7 @@ class CustomAgent:
             return  # Nothing to return.
         return chosen_strings
 
-    def compute_reward(self):
+    def compute_reward(self, states):
         """
         Compute rewards by agent. Note this is different from what the training/evaluation
         scripts do. Agent keeps track of scores and other game information for training purpose.
@@ -613,6 +658,9 @@ class CustomAgent:
         if len(self.scores) > 1:
             prev_rewards = np.array(self.scores[-2], dtype='float32')
             rewards = rewards - prev_rewards
+
+        exploration_rewards = [self.beta / np.sqrt(self.state_distribution.pseudo_count(s)) for s in states]
+        rewards += exploration_rewards
         rewards_pt = to_pt(rewards, self.use_cuda, type='float')
 
         return rewards, rewards_pt, mask, mask_pt
