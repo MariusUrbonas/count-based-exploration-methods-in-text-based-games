@@ -4,7 +4,7 @@ general:
   use_cuda: True  # disable this when running on machine without cuda
 
   # Counting to explore (https://arxiv.org/pdf/1806.11525.pdf) bonuses; at most one should be True
-  counting_to_explore_beta: 0.01
+  counting_to_explore_beta: 0.001
   use_cumulative_counting_bonus: True
   use_episodic_discovery_bonus: False
 
