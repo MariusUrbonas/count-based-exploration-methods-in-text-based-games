@@ -3,6 +3,11 @@ general:
   random_seed: 42
   use_cuda: True  # disable this when running on machine without cuda
 
+  # Counting to explore (https://arxiv.org/pdf/1806.11525.pdf) bonuses; at most one should be True
+  counting_to_explore_beta: 0.01
+  use_cumulative_counting_bonus: True
+  use_episodic_discovery_bonus: False
+
   # replay memory
   replay_memory_capacity: 500000  # adjust this depending on your RAM size
   replay_memory_priority_fraction: 0.25
@@ -24,7 +29,6 @@ checkpoint:
 training:
   batch_size: 16
   nb_epochs: 501
-  nb_history: '$nb_history'
   max_nb_steps_per_episode: 100  # after this many steps, a game is terminated
   optimizer:
     step_rule: 'adam'  # adam
