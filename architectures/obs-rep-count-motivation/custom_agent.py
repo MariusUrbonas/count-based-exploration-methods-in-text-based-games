@@ -88,8 +88,9 @@ class PrioritizedReplayMemory(object):
 
 class HistoryActionStateCache(object):
 
-    def __init__(self, capacity=100):
+    def __init__(self, capacity=100, beta=1/1000):
         self.capacity = capacity
+        self.beta = beta
         self.reset()
 
     def push(self, states, actions):
@@ -111,14 +112,18 @@ class HistoryActionStateCache(object):
     def reset(self):
         self.memory = []
 
+    def element_wise_beta_root(self, list):
+        return [self.beta/np.sqrt(item) for item in list]
+
     def getBonus(self, obs, word2id):
         """returns an array of word bonuses"""
-        word_bonuses = [[0]*len(word2id)]*len(obs)
+        word_bonuses = [[1]*len(word2id)]*len(obs)
         for i, word_bonus in enumerate(word_bonuses):
             for memory in self.memory:
                 if(memory["state"] == hash(tuple(obs[i]))):
                     for word in memory["words"]:
                         word_bonus[word2id[word]] += 1
+        word_bonuses = [self.element_wise_beta_root(bonus) for bonus in word_bonuses]
         return word_bonuses
 
     def __len__(self):
@@ -126,7 +131,8 @@ class HistoryActionStateCache(object):
 
 class HistoryActionStateCacheInfinite(object):
 
-    def __init__(self):
+    def __init__(self, beta=1/1000):
+        self.beta = beta
         self.reset()
 
     def push(self, states, actions):
@@ -146,15 +152,19 @@ class HistoryActionStateCacheInfinite(object):
 
     def reset(self):
         self.memory = {}
+        
+    def element_wise_beta_root(self, list):
+        return [self.beta/np.sqrt(item) for item in list]
+        
 # obs come through as np.ndarrays??
     def getBonus(self, obs, word2id):
         """returns an array of word bonuses"""
-        word_bonuses = [[0]*len(word2id)]*len(obs)
+        word_bonuses = [[1]*len(word2id)]*len(obs)
         for i, ob in enumerate(obs):
             if hash(tuple(ob)) in self.memory:
                 for word in self.memory[hash(tuple(ob))]:
                     word_bonuses[i][word2id[word]] = self.memory[hash(tuple(ob))][word]
-
+        word_bonuses = [self.element_wise_beta_root(bonus) for bonus in word_bonuses]
         return word_bonuses
     def __len__(self):
         return len(self.memory)
