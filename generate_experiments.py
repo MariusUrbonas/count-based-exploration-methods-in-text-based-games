@@ -28,7 +28,7 @@ except Exception:
 world_size = 3
 num_objects = 7
 quest_lengths = [1, 2, 3, 4, 5]
-seeds = [1234]  # Add more seeds to generate more versions of each game type
+seeds = [1234, 3345, 6516, 7586, 9078]  # Add more seeds to generate more versions of each game type
 
 for quest_length in quest_lengths:
     for seed in seeds:
