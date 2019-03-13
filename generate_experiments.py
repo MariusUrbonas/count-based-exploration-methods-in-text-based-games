@@ -25,8 +25,8 @@ except Exception:
     exit()
 
 # Parameters for the generated games
-world_size = 3
-num_objects = 7
+world_size = 2
+num_objects = 4
 quest_lengths = [1, 2, 3, 4, 5]
 seeds = [1234, 3345, 6516, 7586, 9078]  # Add more seeds to generate more versions of each game type
 
