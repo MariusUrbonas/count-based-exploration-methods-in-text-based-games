@@ -17,7 +17,8 @@ except:
 
 # Make output folder
 try:
-    os.mkdir('figures/{}'.format(output_folder))
+    # os.mkdir('figures/{}'.format(output_folder))
+    pass
 except:
     print('Output folder already exists')
     exit()
@@ -31,6 +32,7 @@ for i in range(5):
     plt.figure()
     plt.ylim(0, 100)
     plt.xlim(0, 500)
+    plt.title('Quest Length {}'.format(quest_length))
 
     # Get stats files for different seeds
     stats_files_comparison = glob.glob('{}/*ql-{}*.pickle'.format(stats_folder_comparison, quest_length))
@@ -40,8 +42,11 @@ for i in range(5):
         with open(stats_file, 'rb') as pickle_file:
             data = pickle.load(pickle_file)
             comparison_data.append([data[epoch]['steps'] for epoch in data])
-    comparison_data_np = np.array(comparison_data)
+    
+    if len(comparison_data) == 0:
+        continue
 
+    comparison_data_np = np.array(comparison_data)
     comparison_data_mean = np.mean(comparison_data_np, (0, 2))
     comparison_data_std = np.std(comparison_data_np, (0, 2))
 
@@ -57,5 +62,5 @@ for i in range(5):
         color='#216eef'
     )
     
-    # plt.show()
-    plt.savefig('figures/{}/quest-length-{}.pdf'.format(output_folder, quest_length), bbox_inches='tight')
+    plt.show()
+    # plt.savefig('figures/{}/quest-length-{}.pdf'.format(output_folder, quest_length), bbox_inches='tight')
