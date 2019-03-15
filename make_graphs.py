@@ -7,10 +7,14 @@ import sys
 
 
 NUM_EPOCHS = 500
+STATS_FOLDERS = {
+    'baseline_smaller': ('Baseline', '#ef8a62'),
+    'counting_episodic_smaller': ('Counting (episodic)', '#67a9cf')
+}
 
 
 def plot_stats(stats_folder, quest_length, label, color):
-    stats_files = glob.glob('{}/*ql-{}*.pickle'.format(stats_folder, quest_length))
+    stats_files = glob.glob('experiments/{}/stats/*ql-{}*.pickle'.format(stats_folder, quest_length))
 
     data_list = []
     for stats_file in stats_files:
@@ -42,11 +46,9 @@ def plot_stats(stats_folder, quest_length, label, color):
 
 # Get parameters
 try:
-    stats_folder_baseline = sys.argv[1]
-    stats_folder_comparison = sys.argv[2]
-    output_folder = sys.argv[3]
+    output_folder = sys.argv[1]
 except:
-    print('Usage: pythonw make_graphs.py stats_folder_baseline stats_folder_comparison output_folder')
+    print('Usage: pythonw make_graphs.py output_folder')
     exit()
 
 # Make a separate graph for each quest length
@@ -58,19 +60,9 @@ for i in range(5):
     plt.xlim(0, NUM_EPOCHS)
     plt.title('Quest Length {}'.format(quest_length))
     
-    plot_stats(
-        stats_folder_baseline, 
-        quest_length, 
-        stats_folder_baseline.split('/')[-1], 
-        '#ef8a62'
-    )
-
-    plot_stats(
-        stats_folder_comparison, 
-        quest_length, 
-        stats_folder_comparison.split('/')[-1], 
-        '#67a9cf'
-    )
+    for stats_folder in STATS_FOLDERS:
+        label, color = STATS_FOLDERS[stats_folder]
+        plot_stats(stats_folder, quest_length, label, color)
 
     # plt.show()
     plt.savefig('figures/{}/quest-length-{}.pdf'.format(output_folder, quest_length), bbox_inches='tight')
