@@ -68,7 +68,7 @@ def train(game_files, config_file_name):
             stats["scores"].extend(scores)
             stats["steps"].extend(steps)
         full_stats[epoch_no] = stats
-
+        full_stats['obs_set'] = agent.state_set
         score = sum(stats["scores"]) / agent.batch_size
         steps = sum(stats["steps"]) / agent.batch_size
         print("Epoch: {:3d} | {:2.1f} pts | {:4.1f} steps".format(epoch_no, score, steps))

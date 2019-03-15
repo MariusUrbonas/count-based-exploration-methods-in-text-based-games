@@ -191,6 +191,7 @@ class CustomAgent:
         self.nb_epochs = self.config['training']['nb_epochs']
         self.nb_state_action_cash = self.config['training']['nb_state_action_cash']
         self.add_to_word_ranks = self.config['training']['add_to_word_ranks']
+        self.state_set = set([])
 
         # Set the random seed manually for reproducibility.
         np.random.seed(self.config['general']['random_seed'])
@@ -643,7 +644,9 @@ class CustomAgent:
             self.dones.append(dones)
             # compute previous step's rewards and masks
             rewards_np, rewards, mask_np, mask = self.compute_reward()
-
+        
+        for o in obs:
+            self.state_set.add(o)
         input_description, description_id_list, obs_id_list = self.get_game_step_info(obs, infos)
         # generate commands for one game step, epsilon greedy is applied, i.e.,
         # there is epsilon of chance to generate random commands
