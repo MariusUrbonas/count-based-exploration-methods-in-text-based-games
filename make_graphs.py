@@ -7,9 +7,11 @@ import sys
 
 
 NUM_EPOCHS = 500
+NUM_GRAPHS = 5
 STATS_FOLDERS = {
-    'baseline_smaller': ('Baseline', '#ef8a62'),
-    'counting_episodic_smaller': ('Counting (episodic)', '#67a9cf')
+    'baseline_smaller': ('DQN (Baseline)', '#1b9e77'),
+    'counting_cumulative_smaller': ('DQN-S+', '#7570b3'),
+    'counting_episodic_smaller': ('DQN-S++', '#d95f02')
 }
 
 
@@ -52,7 +54,7 @@ except:
     exit()
 
 # Make a separate graph for each quest length
-for i in range(5):
+for i in range(NUM_GRAPHS):
     quest_length = i + 1
 
     plt.figure()
@@ -65,4 +67,5 @@ for i in range(5):
         plot_stats(stats_folder, quest_length, label, color)
 
     # plt.show()
+    plt.legend()
     plt.savefig('figures/{}/quest-length-{}.pdf'.format(output_folder, quest_length), bbox_inches='tight')
