@@ -16,6 +16,8 @@ from textworld import EnvInfos
 from model import LSTM_DQN
 from generic import to_np, to_pt, preproc, _words_to_ids, pad_sequences, max_len
 
+from sklearn.cluster import KMeans
+
 
 # a snapshot of state to be stored in replay memory
 Transition = namedtuple('Transition', ('observation_id_list', 'word_indices',
@@ -90,8 +92,10 @@ class PrioritizedReplayMemory(object):
 class StateCounter(object):
 
     def __init__(self):
-        self.count_table = {}
-        self.epsilon = 0.00001
+        self.knn = KMeans(n_clusters=15, random_state=42)
+        self.embeding_history = []
+        self.seen = []
+        self.exploring = 0
 
     def safe_add(self, d, value):
         if value in d:
@@ -99,34 +103,39 @@ class StateCounter(object):
         else:
             d[value] = 1
 
-    def push(self, states):
-        """stuff is tokenized state."""
-        for state in states:
-            self.safe_add(self.count_table, tuple(state))
+    def push(self, state_emb):
+        for emb in state_emb:
+            self.embeding_history.append(emb)
 
-    def est_prob_of_state(self, x):
+    def is_new(self, states):
         try:
-            p = self.count_table[tuple(x)] / len(self)
-        except KeyError:
-            p = self.epsilon / len(self)
-        return p
+            if len(self.seen) == 0:
+                new = np.zeros(len(states))
+                for i, pred in enumerate(self.knn.predict(states)):
+                    self.seen.append([pred])
+            else:
+                new = [int(not(pred in self.seen[i])) for i,pred in enumerate(self.knn.predict(states))]
+                for i, pred in enumerate(self.knn.predict(states)):
+                    self.seen[i].append(pred)
+        except Exception:
+            new =  np.zeros(len(states))
+        self.exploring += np.sum(new)
+        return np.array(new)
 
-    def est_prob_hat_of_state(self, x):
-        try:
-            p = (self.count_table[tuple(x)] + 1) / (len(self) + 1)
-        except KeyError:
-            p = (self.epsilon + 1) / len(self) + 1
-        return p
+    def update(self):
+        self.knn.fit(np.array(self.embeding_history))
 
-    def pseudo_count(self, x):
-        p = self.est_prob_of_state(x)
-        p_hat = self.est_prob_hat_of_state(x)
-        n_hat = (p * (1 - p_hat))/(p_hat - p)
-        return n_hat
+    def reset_seen(self):
+        self.seen = []
+        self.exploring = 0
 
+    def reset(self):
+        self.history = []
+        self.seen = []
+        self.exploring = 0
 
     def __len__(self):
-        return len(self.count_table) 
+        return len(self.embeding_history) 
 
 
 class CustomAgent:
@@ -507,7 +516,7 @@ class CustomAgent:
         """
         state_representation = self.model.representation_generator(input_description)
         word_ranks = self.model.action_scorer(state_representation)  # each element in list has batch x n_vocab size
-        return word_ranks
+        return word_ranks, state_representation
 
     def act_eval(self, obs: List[str], scores: List[int], dones: List[bool], infos: Dict[str, List[Any]]) -> List[str]:
         """
@@ -541,7 +550,7 @@ class CustomAgent:
             return  # Nothing to return.
 
         input_description, _, _ = self.get_game_step_info(obs, infos)
-        word_ranks = self.get_ranks(input_description)  # list of batch x vocab
+        word_ranks, _ = self.get_ranks(input_description)  # list of batch x vocab
         _, word_indices_maxq = self.choose_maxQ_command(word_ranks, self.word_masks_np)
 
         chosen_indices = word_indices_maxq
@@ -580,17 +589,20 @@ class CustomAgent:
             return self.act_eval(obs, scores, dones, infos)
 
         input_description, description_id_list, description_token_list = self.get_game_step_info(obs, infos)
+        word_ranks, state_rep = self.get_ranks(input_description)  # list of batch x vocab
+        self.state_distribution.push(to_np(state_rep))
 
         if self.current_step > 0:
             # append scores / dones from previous step into memory
             self.scores.append(scores)
             self.dones.append(dones)
             # compute previous step's rewards and masks
-            rewards_np, rewards, mask_np, mask = self.compute_reward(description_token_list)
+            rewards_np, rewards, mask_np, mask = self.compute_reward(state_rep)
+
+        #self.state_distribution.push(description_token_list)
 
         # generate commands for one game step, epsilon greedy is applied, i.e.,
         # there is epsilon of chance to generate random commands
-        word_ranks = self.get_ranks(input_description)  # list of batch x vocab
         _, word_indices_maxq = self.choose_maxQ_command(word_ranks, self.word_masks_np)
         _, word_indices_random = self.choose_random_command(word_ranks, self.word_masks_np)
         # random number for epsilon greedy
@@ -636,7 +648,7 @@ class CustomAgent:
             return  # Nothing to return.
         return chosen_strings
 
-    def compute_reward(self, states):
+    def compute_reward(self, state_emb):
         """
         Compute rewards by agent. Note this is different from what the training/evaluation
         scripts do. Agent keeps track of scores and other game information for training purpose.
@@ -659,7 +671,7 @@ class CustomAgent:
             prev_rewards = np.array(self.scores[-2], dtype='float32')
             rewards = rewards - prev_rewards
 
-        exploration_rewards = [self.beta / np.sqrt(self.state_distribution.pseudo_count(s)) for s in states]
+        exploration_rewards = self.beta * self.state_distribution.is_new(to_np(state_emb))
         rewards += exploration_rewards
         rewards_pt = to_pt(rewards, self.use_cuda, type='float')
 
@@ -683,11 +695,11 @@ class CustomAgent:
         chosen_indices = list(list(zip(*batch.word_indices)))
         chosen_indices = [torch.stack(item, 0) for item in chosen_indices]  # list of batch x 1
 
-        word_ranks = self.get_ranks(input_observation)  # list of batch x vocab
+        word_ranks, _ = self.get_ranks(input_observation)  # list of batch x vocab
         word_qvalues = [w_rank.gather(1, idx).squeeze(-1) for w_rank, idx in zip(word_ranks, chosen_indices)]  # list of batch
         q_value = torch.mean(torch.stack(word_qvalues, -1), -1)  # batch
 
-        next_word_ranks = self.get_ranks(next_input_observation)  # batch x n_verb, batch x n_noun, batchx n_second_noun
+        next_word_ranks, _ = self.get_ranks(next_input_observation)  # batch x n_verb, batch x n_noun, batchx n_second_noun
         next_word_masks = list(list(zip(*batch.next_word_masks)))
         next_word_masks = [np.stack(item, 0) for item in next_word_masks]
         next_word_qvalues, _ = self.choose_maxQ_command(next_word_ranks, next_word_masks)
@@ -719,6 +731,7 @@ class CustomAgent:
         self.step_used_before_done = np.sum(step_used, 0)  # batch
 
         self.history_avg_scores.push(np.mean(self.final_rewards))
+        print('During this epoch {} new states have been seen'.format(self.state_distribution.exploring))
         # save checkpoint
         if self.mode == "train" and self.current_episode % self.save_frequency == 0:
             avg_score = self.history_avg_scores.get_avg()
@@ -729,6 +742,8 @@ class CustomAgent:
                 torch.save(self.model.state_dict(), save_to)
                 print("========= saved checkpoint =========")
 
+        self.state_distribution.update()
+        self.state_distribution.reset_seen()
         self.current_episode += 1
         # annealing
         if self.current_episode < self.epsilon_anneal_episodes:
