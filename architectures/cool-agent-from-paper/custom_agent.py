@@ -220,6 +220,7 @@ class CustomAgent:
         self.state_distribution = StateCounter()
         self.best_avg_score_so_far = 0.0
         self.beta = 0.001
+        self.state_set = set([])
 
     def train(self):
         """
@@ -587,6 +588,9 @@ class CustomAgent:
 
         if self.mode == "eval":
             return self.act_eval(obs, scores, dones, infos)
+
+        for o in obs:
+            self.state_set.add(o)
 
         input_description, description_id_list, description_token_list = self.get_game_step_info(obs, infos)
         word_ranks, state_rep = self.get_ranks(input_description)  # list of batch x vocab

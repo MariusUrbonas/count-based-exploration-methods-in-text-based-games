@@ -103,6 +103,7 @@ class CustomAgent:
             self.word2id[w] = i
         self.EOS_id = self.word2id["</S>"]
 
+        self.state_set = set([])
         self.batch_size = self.config['training']['batch_size']
         self.max_nb_steps_per_episode = self.config['training']['max_nb_steps_per_episode']
         self.nb_epochs = self.config['training']['nb_epochs']
