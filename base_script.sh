@@ -33,5 +33,5 @@ export DATASET_DIR=$${TMP}/datasets/
 
 source /home/$${STUDENT_ID}/miniconda3/bin/activate textworld
 
-cd baselines/sample_submission_lstm-dqn
+cd $model_name
 python train.py ../../experiments/$experiment_name/games/$game_name.ulx -c ../../$config_file_name

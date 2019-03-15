@@ -7,9 +7,10 @@ import os
 # Config files will be generated in `experiments/experiment_name/configs`
 # Train scripts will be generated in `experiments/experiment_name/scripts`
 try:
-    experiment_name = sys.argv[1]
+    model_name = sys.argv[1]
+    experiment_name = sys.argv[2]
 except IndexError:
-    print('Usage: `python generate_experiments.py your_experiment_name`')
+    print('Usage: `python generate_experiments.py model_name exp_name`')
     exit()
 
 try:
@@ -26,8 +27,8 @@ except Exception:
 # Parameters for the generated games
 world_size = 2
 num_objects = 4
-quest_lengths = [1, 2, 3, 4, 5]
-seeds = [1234, 3345, 6516, 7586, 9078]  # Add more seeds to generate more versions of each game type
+quest_lengths = [1, 2, 3, 4]
+seeds = [1234, 3345, 6516]  # Add more seeds to generate more versions of each game type
 
 for quest_length in quest_lengths:
     for seed in seeds:
@@ -74,7 +75,8 @@ for quest_length in quest_lengths:
                 script_file.write(template.substitute({
                     'experiment_name': experiment_name,
                     'game_name': game_name,
-                    'config_file_name': config_file_name
+                    'config_file_name': config_file_name,
+                    'model_name': model_name
                 }))
 
         print('Generated training scripts')
