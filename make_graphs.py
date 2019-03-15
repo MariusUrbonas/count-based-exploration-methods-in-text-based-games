@@ -53,7 +53,7 @@ except:
     print('Usage: pythonw make_graphs.py output_folder')
     exit()
 
-fig, axes = plt.subplots(NUM_GRAPHS, 1, figsize=(6, 4 * NUM_GRAPHS), sharex=True, sharey=True)
+fig, axes = plt.subplots(NUM_GRAPHS, 1, figsize=(5, 3 * NUM_GRAPHS), sharex=True, sharey=True)
 
 # Make a separate subplot for each quest length
 for axis, quest_length in zip(axes, range(1, NUM_GRAPHS + 1)):
