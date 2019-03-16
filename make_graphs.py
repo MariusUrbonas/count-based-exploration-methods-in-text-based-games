@@ -62,13 +62,17 @@ fig, axes = plt.subplots(NUM_GRAPHS, 1, figsize=(5, 3 * NUM_GRAPHS), sharex=True
 # Make a separate subplot for each quest length
 for axis, quest_length in zip(axes, range(1, NUM_GRAPHS + 1)):
 
+    # Plot each line
     for stats_folder in STATS_FOLDERS:
         label, color = STATS_FOLDERS[stats_folder]
         plot_stats(axis, stats_folder, quest_length, label, color)
+
     # Set title and legend
     axis.set_title('Quest Length {}'.format(quest_length))
     if quest_length == 1:
-        axis.legend()
+        legend = axis.legend()
+        for line in legend.get_lines():
+            line.set_linewidth(2.0)
 
     # Set axis limits
     axis.set_ylim(0, 100)
