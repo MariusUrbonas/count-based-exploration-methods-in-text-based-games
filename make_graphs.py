@@ -6,12 +6,12 @@ import pickle
 import sys
 
 
-NUM_EPOCHS = 500
+NUM_EPOCHS = 400
 NUM_GRAPHS = 5
 STATS_FOLDERS = {
-    'baseline_smaller': ('DQN (Baseline)', '#1b9e77'),
-    'counting_cumulative_smaller': ('DQN-S+', '#7570b3'),
-    'counting_episodic_smaller': ('DQN-S++', '#d95f02')
+    'banana_baseline': ('DQN (Baseline)', '#1b9e77'),
+    # 'counting_cumulative_smaller': ('DQN-S+', '#7570b3'),
+    # 'counting_episodic_smaller': ('DQN-S++', '#d95f02')
 }
 
 
@@ -22,6 +22,7 @@ def plot_stats(axis, stats_folder, quest_length, label, color):
     for stats_file in stats_files:
         with open(stats_file, 'rb') as pickle_file:
             data = pickle.load(pickle_file)
+            del(data['obs_set'])
             data_list.append([data[epoch]['steps'] for epoch in data])
     
     if len(data_list) == 0:
