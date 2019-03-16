@@ -8,7 +8,7 @@ import sys
 
 NUM_EPOCHS = 400
 NUM_GRAPHS = 4
-STATS_FOLDERS = {
+STATS_FOLDERS = {  # 'folder': ('label', '#hexcolor')
     'banana_baseline': ('DQN (Baseline)', '#1b9e77'),
     'obs-count-rep-motivation-false-v2': ('DQN-UCB-SA', '#d95f02'),
     'obs-count-rep-motivation-true-v2': ('DQN-MBIE-EB', '#7570b3'),
