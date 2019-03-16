@@ -7,11 +7,13 @@ import sys
 
 
 NUM_EPOCHS = 400
-NUM_GRAPHS = 5
+NUM_GRAPHS = 4
 STATS_FOLDERS = {
     'banana_baseline': ('DQN (Baseline)', '#1b9e77'),
-    # 'counting_cumulative_smaller': ('DQN-S+', '#7570b3'),
-    # 'counting_episodic_smaller': ('DQN-S++', '#d95f02')
+    'obs-count-rep-motivation-false-v2': ('DQN-UCB-SA', '#d95f02'),
+    'obs-count-rep-motivation-true-v2': ('DQN-MBIE-EB', '#7570b3'),
+    'banana_cumulative': ('DQN-S+', '#e7298a'),
+    'banana_episodic': ('DQN-S++', '#a6761d')
 }
 
 
@@ -37,13 +39,14 @@ def plot_stats(axis, stats_folder, quest_length, label, color):
         data_mean - data_std,
         data_mean + data_std,
         color=color,
-        alpha=0.1
+        alpha=0.05
     )
     axis.plot(
         np.arange(NUM_EPOCHS), 
         data_mean,
         color=color,
-        label=label
+        label=label,
+        linewidth=0.5
     )
 
 
