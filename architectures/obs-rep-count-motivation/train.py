@@ -2,6 +2,7 @@ import os
 import glob
 import argparse
 import pickle
+import yaml
 
 from tqdm import tqdm
 
@@ -37,6 +38,9 @@ def train(game_files, config_file_name):
     agent = CustomAgent(config_file_name)
     requested_infos = agent.select_additional_infos()
     _validate_requested_infos(requested_infos)
+    with open(config_file_name) as reader:
+        config = yaml.safe_load(reader)
+    save_frequency = config['checkpoint']['save_frequency']
 
     env_id = textworld.gym.register_games(game_files, requested_infos,
                                           max_episode_steps=agent.max_nb_steps_per_episode,
@@ -72,12 +76,14 @@ def train(game_files, config_file_name):
         score = sum(stats["scores"]) / agent.batch_size
         steps = sum(stats["steps"]) / agent.batch_size
         print("Epoch: {:3d} | {:2.1f} pts | {:4.1f} steps".format(epoch_no, score, steps))
-    stats_file_name = config_file_name.split("/")
-    stats_file_name[-2] = "stats"
-    stats_file_name[-1] = stats_file_name[-1].strip("yaml") + "pickle"
-    stats_file_name = "/".join(stats_file_name)
-    with open(stats_file_name,"wb") as f:
-        pickle.dump(full_stats, f)
+        if epoch_no % save_frequency == 0:
+            print("========= saved stats checkpoint =========")
+            stats_file_name = config_file_name.split("/")
+            stats_file_name[-2] = "stats"
+            stats_file_name[-1] = stats_file_name[-1].strip(".yaml") + "-epoch" + str(epoch_no) + ".pickle"
+            stats_file_name = "/".join(stats_file_name)
+            with open(stats_file_name,"wb") as f:
+                pickle.dump(full_stats, f)
     
 
 if __name__ == '__main__':

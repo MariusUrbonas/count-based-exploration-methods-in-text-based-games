@@ -305,12 +305,16 @@ class CustomAgent:
             load_from: File name of the pretrained model checkpoint.
         """
         print("loading model from %s\n" % (load_from))
+        load_from_cache = load_from[:-2] + "cache"
         try:
             if self.use_cuda:
                 state_dict = torch.load(load_from)
+                state_dict_cache = torch.load(load_from_cache)
             else:
                 state_dict = torch.load(load_from, map_location='cpu')
+                state_dict_cache = torch.load(load_from_cache, map_location='cpu')
             self.model.load_state_dict(state_dict)
+            self.history_state_action_cache = state_dict_cache
         except:
             print("Failed to load checkpoint...")
 
@@ -785,9 +789,11 @@ class CustomAgent:
             if avg_score > self.best_avg_score_so_far:
                 self.best_avg_score_so_far = avg_score
 
-                save_to = self.model_checkpoint_path + '/' + self.experiment_tag + "_episode_" + str(self.current_episode) + ".pt"
-                torch.save(self.model.state_dict(), save_to)
-                print("========= saved checkpoint =========")
+            save_to = self.model_checkpoint_path + '/' + self.experiment_tag + "_episode_" + str(self.current_episode) + ".pt"
+            torch.save(self.model.state_dict(), save_to)
+            print("========= saved checkpoint =========")
+            save_to_bonus_cache = self.model_checkpoint_path + '/' + self.experiment_tag + "_episode_" + str(self.current_episode) + ".cache"
+            torch.save(self.history_state_action_cache, save_to_bonus_cache)
 
         self.current_episode += 1
         # annealing
