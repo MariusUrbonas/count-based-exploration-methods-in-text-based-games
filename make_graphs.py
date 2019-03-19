@@ -76,13 +76,12 @@ for axis, quest_length in zip(axes, range(1, NUM_GRAPHS + 1)):
             line.set_linewidth(2.0)
 
     # Set axis limits
-    axis.set_ylim(0, 1.05)
+    axis.set_ylim(-0.05, 1.05)
     axis.set_xlim(0, NUM_EPOCHS)
 
     # Set axis labels
-    axis.set_ylabel('Steps')
+    axis.set_ylabel('Mean Score')
     if quest_length == NUM_GRAPHS:
         axis.set_xlabel('Epoch')
     
-
 plt.savefig('figures/{}.pdf'.format(output_name, quest_length), bbox_inches='tight')
