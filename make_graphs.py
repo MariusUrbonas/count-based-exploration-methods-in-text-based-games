@@ -13,7 +13,8 @@ STATS_FOLDERS = {  # 'folder': ('label', '#hexcolor')
     'obs-count-rep-motivation-false-v2': ('DQN-UCB-SA', '#d95f02'),
     'obs-count-rep-motivation-true-v2': ('DQN-MBIE-EB', '#7570b3'),
     'banana_cumulative': ('DQN-S+', '#e7298a'),
-    'banana_episodic': ('DQN-S++', '#a6761d')
+    'banana_episodic': ('DQN-S++', '#a6761d'),
+    'cool_agent': ('DQN-KM++', '#e6ab02')
 }
 
 
@@ -25,12 +26,12 @@ def plot_stats(axis, stats_folder, quest_length, label, color):
         with open(stats_file, 'rb') as pickle_file:
             data = pickle.load(pickle_file)
             del(data['obs_set'])
-            data_list.append([data[epoch]['steps'] for epoch in data])
+            data_list.append([data[epoch]['scores'] for epoch in data][:NUM_EPOCHS])
     
     if len(data_list) == 0:
         return
 
-    data_np = np.array(data_list)[:, :NUM_EPOCHS, :]
+    data_np = np.array(data_list)
     data_mean = np.mean(data_np, (0, 2))
     data_std = np.std(data_np, (0, 2))
 
@@ -75,7 +76,7 @@ for axis, quest_length in zip(axes, range(1, NUM_GRAPHS + 1)):
             line.set_linewidth(2.0)
 
     # Set axis limits
-    axis.set_ylim(0, 100)
+    axis.set_ylim(0, 1.05)
     axis.set_xlim(0, NUM_EPOCHS)
 
     # Set axis labels
