@@ -19,12 +19,6 @@ STATS_FOLDERS = {  # 'folder': ('label', '#hexcolor')
     'cool_agent': ('DQN-KM++', '#e6ab02')
 }
 
-
-def plot_stats(index, stats_folder, label, color):
-
-    pass
-
-
 # Get parameters
 try:
     output_name = sys.argv[1]
@@ -76,7 +70,11 @@ for index, stats_folder in enumerate(STATS_FOLDERS):
 
 layout = go.Layout(
     barmode='group',
-    bargroupgap=0.1
+    bargroupgap=0.1,
+    legend=dict(
+        x=0.85,
+        y=1,
+    )
 )
 fig = go.Figure(data=traces, layout=layout)
 py.plot(fig, filename='figures/grouped-bar.html')
