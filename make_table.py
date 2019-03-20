@@ -24,10 +24,11 @@ for stats_folder in STATS_FOLDERS:
         for stats_file in stats_files:
             with open(stats_file, 'rb') as pickle_file:
                 data = pickle.load(pickle_file)
-                del(data['obs_set'])
-                data_list.append([data[epoch]['scores'] for epoch in data][:NUM_EPOCHS])
+                if 'obs_set' in data:
+                    del(data['obs_set'])
+                data_list.append([data[epoch]['steps'] for epoch in data][:NUM_EPOCHS])
 
-        data_np = np.array(data_list)        
-        print('& ${:.2f} \pm {:.2f}$'.format(data_np.mean(), data_np.std()), end=' ')
+        data_np = np.array(data_list)      
+        print('& ${:2.1f}$ & ${:2.1f}$'.format(data_np.mean(), np.std(data_np, (0, 2)).mean()), end=' ')
 
     print('\\\\')
