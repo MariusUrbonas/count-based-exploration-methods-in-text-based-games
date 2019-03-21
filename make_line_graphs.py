@@ -33,10 +33,7 @@ def plot_stats(axis, stats_folder, quest_length, label, color):
         return
 
     data_np = np.array(data_list)
-    print(data_np.shape)
     data_mean = np.mean(data_np, (0, 2))
-    print(data_mean.shape)
-    exit()
     data_std = np.std(data_np, (0, 2))
 
     axis.fill_between(
