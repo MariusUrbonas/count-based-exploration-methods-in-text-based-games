@@ -43,20 +43,20 @@ for index, stats_folder in enumerate(STATS_FOLDERS):
                     del(data['obs_set'])
                 data_lists[-1].append([data[epoch]['scores'] for epoch in data][:NUM_EPOCHS])
     
-    data_np = np.array(data_lists)
+    data_nps = [np.array(data_list) for data_list in data_lists]
     label, color = STATS_FOLDERS[stats_folder]
 
     # Mean of all epochs
     traces.append(go.Bar(
         x=['Quest Length {}'.format(ql + 1) for ql in range(NUM_QUEST_LENGTHS)],
-        y=np.mean(data_np, (1, 2, 3)),
+        y=[np.mean(data_np) for data_np in data_nps],
         name=label,
         marker=dict(
             color=color
         ),
         error_y=dict(
             type='data',
-            array=np.std(data_np, (1, 3)).mean((1,)),
+            array=[np.std(data_np, (0, 2)).mean() for data_np in data_nps],
             visible=True,
             thickness=0.3,
             width=2
@@ -66,14 +66,14 @@ for index, stats_folder in enumerate(STATS_FOLDERS):
     # Mean of last 50 epochs
     traces.append(go.Bar(
         x=['Quest Length {}'.format(ql + 1) for ql in range(NUM_QUEST_LENGTHS)],
-        y=np.mean(data_np[:, :, -50:, :], (1, 2, 3)),
+        y=[np.mean(data_np[:, -50:, :]) for data_np in data_nps],
         marker=dict(
             color=color,
             opacity=0.3
         ),
         error_y=dict(
             type='data',
-            array=np.std(data_np[:, :, -50:, :], (1, 3)).mean((1,)),
+            array=[np.std(data_np[:, -50:, :], (0, 2)).mean() for data_np in data_nps],
             visible=True,
             thickness=0.3,
             width=2
@@ -86,28 +86,33 @@ layout = go.Layout(
     bargroupgap=0.15,
     legend=dict(
         orientation='h',
+        x=0.5,
+        xanchor='center',
         font=dict(
             family='sans-serif',
-            size=8
+            size=12
         ),
     ),
     xaxis=dict(
         tickfont=dict(
             family='sans-serif',
-            size=10
+            size=12
         ),
     ),
     yaxis=dict(
+        range=[-0.05, 1.05],
         title='Mean Score',
         titlefont=dict(
             family='sans-serif',
-            size=10
+            size=12
         ),
         tickfont=dict(
             family='sans-serif',
-            size=10
+            size=12
         ),
-    )
+    ),
+    width=1000,
+    height=500
 )
 fig = go.Figure(data=traces, layout=layout)
 pio.write_image(fig, 'figures/{}.pdf'.format(output_name))
