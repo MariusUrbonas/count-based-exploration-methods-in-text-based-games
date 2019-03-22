@@ -2,6 +2,8 @@
 Framework and model code for the paper "An Exploration of Count-Based Exploration Methods in Text-Based
 Games", which was also used as a submission for [Microsoft TextWorld competition]( https://www.microsoft.com/en-us/research/project/textworld/).
 
+Paper is added to the repository under the name report.pdf
+
 # Installation
 
 ## TextWorld
@@ -73,29 +75,3 @@ train.py ../../train/some-game.ulx -c  config.yaml
 ```
 
 This should train on multiple games (needs to be tested). (Make a different folder with a subset of games to test?)
-
-## PyFiction
-
-To evaluate our models we ll use pyfiction used in Baselines for Reinforcement Learning in Text Games (https://ieeexplore.ieee.org/abstract/document/8576056). 
-
-Make yourself a new enviroment:
-
-```bash
-conda create --name baselines python=3.7
-conda activate baselines
-```
-
-```bash
-python3 -m pip install --upgrade https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-1.12.0-py3-none-any.whl
-```
-
-Install pyfiction:
-
-```bash
-pip install pyfiction
-```
-Play game by:
-
-```bash
-python baselines/baselines_for_pyfiction/pyfiction_example.py
-```
